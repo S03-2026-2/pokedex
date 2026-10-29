@@ -1,0 +1,220 @@
+<?xml version='1.0' encoding='utf-8'?>
+<mxfile host="app.diagrams.net" agent="ChatGPT" version="24.7.17">
+  <diagram id="uml-solid-ajustado" name="UML SOLID - Pokédex">
+    <mxGraphModel dx="2200" dy="1200" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1800" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="jogador" parent="1" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=30;horizontalStack=1;resizeParent=0;resizeParentMax=0;collapsible=1;marginBottom=0;whiteSpace=wrap;html=1;" value="Jogador" vertex="1">
+          <mxGeometry x="60" y="90" width="300" height="114" as="geometry" />
+        </mxCell>
+        <mxCell id="jogador-a1" parent="jogador" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=6;spacingRight=4;overflow=hidden;portConstraint=eastwest;rotatable=0;whiteSpace=wrap;html=1;" value="+ id: int" vertex="1">
+          <mxGeometry y="30" width="300" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="jogador-a2" parent="jogador" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=6;spacingRight=4;overflow=hidden;portConstraint=eastwest;rotatable=0;whiteSpace=wrap;html=1;" value="+ nome: string" vertex="1">
+          <mxGeometry y="58" width="300" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="jogador-a3" parent="jogador" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=6;spacingRight=4;overflow=hidden;portConstraint=eastwest;rotatable=0;whiteSpace=wrap;html=1;" value="+ email: string" vertex="1">
+          <mxGeometry y="86" width="300" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="colecao" parent="1" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=30;horizontalStack=1;resizeParent=0;resizeParentMax=0;collapsible=1;marginBottom=0;whiteSpace=wrap;html=1;" value="Colecao" vertex="1">
+          <mxGeometry x="430" y="118" width="330" height="58" as="geometry" />
+        </mxCell>
+        <mxCell id="colecao-a1" parent="colecao" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=6;spacingRight=4;overflow=hidden;portConstraint=eastwest;rotatable=0;whiteSpace=wrap;html=1;" value="+ /totalConhecidas: int" vertex="1">
+          <mxGeometry y="30" width="330" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="ileitura" parent="1" style="swimlane;fontStyle=2;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=42;horizontalStack=1;resizeParent=0;resizeParentMax=0;collapsible=1;marginBottom=0;whiteSpace=wrap;html=1;" value="&amp;lt;&amp;lt;interface&amp;gt;&amp;gt;&lt;br&gt;ILeituraColecao" vertex="1">
+          <mxGeometry x="60" y="390" width="350" height="106" as="geometry" />
+        </mxCell>
+        <mxCell id="ileitura-m1" parent="ileitura" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=6;spacingRight=4;overflow=hidden;portConstraint=eastwest;rotatable=0;whiteSpace=wrap;html=1;" value="+ visualizarColecao(colecao: Colecao): ICarta[]" vertex="1">
+          <mxGeometry y="42" width="350" height="32" as="geometry" />
+        </mxCell>
+        <mxCell id="ileitura-m2" parent="ileitura" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=6;spacingRight=4;overflow=hidden;portConstraint=eastwest;rotatable=0;whiteSpace=wrap;html=1;" value="+ conhecePokemon(colecao: Colecao, pokemonId: int): bool" vertex="1">
+          <mxGeometry y="74" width="350" height="32" as="geometry" />
+        </mxCell>
+        <mxCell id="iescrita" parent="1" style="swimlane;fontStyle=2;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=42;horizontalStack=1;resizeParent=0;resizeParentMax=0;collapsible=1;marginBottom=0;whiteSpace=wrap;html=1;" value="&amp;lt;&amp;lt;interface&amp;gt;&amp;gt;&lt;br&gt;IEscritaColecao" vertex="1">
+          <mxGeometry x="60" y="530" width="350" height="74" as="geometry" />
+        </mxCell>
+        <mxCell id="iescrita-m1" parent="iescrita" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=6;spacingRight=4;overflow=hidden;portConstraint=eastwest;rotatable=0;whiteSpace=wrap;html=1;" value="+ adicionarCarta(colecao: Colecao, carta: ICarta): bool" vertex="1">
+          <mxGeometry y="42" width="350" height="32" as="geometry" />
+        </mxCell>
+        <mxCell id="service" parent="1" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=30;horizontalStack=1;resizeParent=0;resizeParentMax=0;collapsible=1;marginBottom=0;whiteSpace=wrap;html=1;" value="ColecaoService" vertex="1">
+          <mxGeometry x="500" y="390" width="390" height="194" as="geometry" />
+        </mxCell>
+        <mxCell id="service-a1" parent="service" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=6;spacingRight=4;overflow=hidden;portConstraint=eastwest;rotatable=0;whiteSpace=wrap;html=1;" value="- pokemonProvider: IPokemonProvider" vertex="1">
+          <mxGeometry y="30" width="390" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="service-sep" parent="service" style="line;strokeWidth=1;fillColor=none;align=left;verticalAlign=middle;spacingTop=-1;spacingLeft=3;spacingRight=3;rotatable=0;labelPosition=right;points=[];portConstraint=eastwest;" value="" vertex="1">
+          <mxGeometry y="58" width="390" height="8" as="geometry" />
+        </mxCell>
+        <mxCell id="service-m1" parent="service" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=6;spacingRight=4;overflow=hidden;portConstraint=eastwest;rotatable=0;whiteSpace=wrap;html=1;" value="+ ColecaoService(pokemonProvider: IPokemonProvider)" vertex="1">
+          <mxGeometry y="66" width="390" height="32" as="geometry" />
+        </mxCell>
+        <mxCell id="service-m2" parent="service" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=6;spacingRight=4;overflow=hidden;portConstraint=eastwest;rotatable=0;whiteSpace=wrap;html=1;" value="+ adicionarCarta(colecao: Colecao, carta: ICarta): bool" vertex="1">
+          <mxGeometry y="98" width="390" height="32" as="geometry" />
+        </mxCell>
+        <mxCell id="service-m3" parent="service" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=6;spacingRight=4;overflow=hidden;portConstraint=eastwest;rotatable=0;whiteSpace=wrap;html=1;" value="+ visualizarColecao(colecao: Colecao): ICarta[]" vertex="1">
+          <mxGeometry y="130" width="390" height="32" as="geometry" />
+        </mxCell>
+        <mxCell id="service-m4" parent="service" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=6;spacingRight=4;overflow=hidden;portConstraint=eastwest;rotatable=0;whiteSpace=wrap;html=1;" value="+ conhecePokemon(colecao: Colecao, pokemonId: int): bool" vertex="1">
+          <mxGeometry y="162" width="390" height="32" as="geometry" />
+        </mxCell>
+        <mxCell id="icarta" parent="1" style="swimlane;fontStyle=2;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=42;horizontalStack=1;resizeParent=0;resizeParentMax=0;collapsible=1;marginBottom=0;whiteSpace=wrap;html=1;" value="&amp;lt;&amp;lt;interface&amp;gt;&amp;gt;&lt;br&gt;ICarta" vertex="1">
+          <mxGeometry x="910" y="62" width="340" height="170" as="geometry" />
+        </mxCell>
+        <mxCell id="icarta-m1" parent="icarta" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=6;spacingRight=4;overflow=hidden;portConstraint=eastwest;rotatable=0;whiteSpace=wrap;html=1;" value="+ getId(): int" vertex="1">
+          <mxGeometry y="42" width="340" height="32" as="geometry" />
+        </mxCell>
+        <mxCell id="icarta-m2" parent="icarta" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=6;spacingRight=4;overflow=hidden;portConstraint=eastwest;rotatable=0;whiteSpace=wrap;html=1;" value="+ getDataConhecimento(): date" vertex="1">
+          <mxGeometry y="74" width="340" height="32" as="geometry" />
+        </mxCell>
+        <mxCell id="icarta-m3" parent="icarta" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=6;spacingRight=4;overflow=hidden;portConstraint=eastwest;rotatable=0;whiteSpace=wrap;html=1;" value="+ getPokemon(): Pokemon" vertex="1">
+          <mxGeometry y="106" width="340" height="32" as="geometry" />
+        </mxCell>
+        <mxCell id="icarta-m4" parent="icarta" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=6;spacingRight=4;overflow=hidden;portConstraint=eastwest;rotatable=0;whiteSpace=wrap;html=1;" value="+ getOrigem(): OrigemConhecimento" vertex="1">
+          <mxGeometry y="138" width="340" height="32" as="geometry" />
+        </mxCell>
+        <mxCell id="carta" parent="1" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=30;horizontalStack=1;resizeParent=0;resizeParentMax=0;collapsible=1;marginBottom=0;whiteSpace=wrap;html=1;" value="CartaConhecida" vertex="1">
+          <mxGeometry x="900" y="390" width="360" height="278" as="geometry" />
+        </mxCell>
+        <mxCell id="carta-a1" parent="carta" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=6;spacingRight=4;overflow=hidden;portConstraint=eastwest;rotatable=0;whiteSpace=wrap;html=1;" value="- id: int" vertex="1">
+          <mxGeometry y="30" width="360" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="carta-a2" parent="carta" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=6;spacingRight=4;overflow=hidden;portConstraint=eastwest;rotatable=0;whiteSpace=wrap;html=1;" value="- dataConhecimento: date" vertex="1">
+          <mxGeometry y="58" width="360" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="carta-a3" parent="carta" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=6;spacingRight=4;overflow=hidden;portConstraint=eastwest;rotatable=0;whiteSpace=wrap;html=1;" value="- pokemon: Pokemon" vertex="1">
+          <mxGeometry y="86" width="360" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="carta-a4" parent="carta" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=6;spacingRight=4;overflow=hidden;portConstraint=eastwest;rotatable=0;whiteSpace=wrap;html=1;" value="- origem: OrigemConhecimento" vertex="1">
+          <mxGeometry y="114" width="360" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="carta-sep" parent="carta" style="line;strokeWidth=1;fillColor=none;align=left;verticalAlign=middle;spacingTop=-1;spacingLeft=3;spacingRight=3;rotatable=0;labelPosition=right;points=[];portConstraint=eastwest;" value="" vertex="1">
+          <mxGeometry y="142" width="360" height="8" as="geometry" />
+        </mxCell>
+        <mxCell id="carta-m1" parent="carta" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=6;spacingRight=4;overflow=hidden;portConstraint=eastwest;rotatable=0;whiteSpace=wrap;html=1;" value="+ getId(): int" vertex="1">
+          <mxGeometry y="150" width="360" height="32" as="geometry" />
+        </mxCell>
+        <mxCell id="carta-m2" parent="carta" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=6;spacingRight=4;overflow=hidden;portConstraint=eastwest;rotatable=0;whiteSpace=wrap;html=1;" value="+ getDataConhecimento(): date" vertex="1">
+          <mxGeometry y="182" width="360" height="32" as="geometry" />
+        </mxCell>
+        <mxCell id="carta-m3" parent="carta" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=6;spacingRight=4;overflow=hidden;portConstraint=eastwest;rotatable=0;whiteSpace=wrap;html=1;" value="+ getPokemon(): Pokemon" vertex="1">
+          <mxGeometry y="214" width="360" height="32" as="geometry" />
+        </mxCell>
+        <mxCell id="carta-m4" parent="carta" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=6;spacingRight=4;overflow=hidden;portConstraint=eastwest;rotatable=0;whiteSpace=wrap;html=1;" value="+ getOrigem(): OrigemConhecimento" vertex="1">
+          <mxGeometry y="246" width="360" height="32" as="geometry" />
+        </mxCell>
+        <mxCell id="pokemon" parent="1" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=30;horizontalStack=1;resizeParent=0;resizeParentMax=0;collapsible=1;marginBottom=0;whiteSpace=wrap;html=1;" value="Pokemon" vertex="1">
+          <mxGeometry x="1400" y="458" width="280" height="142" as="geometry" />
+        </mxCell>
+        <mxCell id="pokemon-a1" parent="pokemon" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=6;spacingRight=4;overflow=hidden;portConstraint=eastwest;rotatable=0;whiteSpace=wrap;html=1;" value="+ id: int" vertex="1">
+          <mxGeometry y="30" width="280" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="pokemon-a2" parent="pokemon" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=6;spacingRight=4;overflow=hidden;portConstraint=eastwest;rotatable=0;whiteSpace=wrap;html=1;" value="+ nome: string" vertex="1">
+          <mxGeometry y="58" width="280" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="pokemon-a3" parent="pokemon" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=6;spacingRight=4;overflow=hidden;portConstraint=eastwest;rotatable=0;whiteSpace=wrap;html=1;" value="+ tipo: string" vertex="1">
+          <mxGeometry y="86" width="280" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="pokemon-a4" parent="pokemon" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=6;spacingRight=4;overflow=hidden;portConstraint=eastwest;rotatable=0;whiteSpace=wrap;html=1;" value="+ imagemUrl: string" vertex="1">
+          <mxGeometry y="114" width="280" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="origem" parent="1" style="swimlane;fontStyle=2;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=42;horizontalStack=1;resizeParent=0;resizeParentMax=0;collapsible=1;marginBottom=0;whiteSpace=wrap;html=1;" value="&amp;lt;&amp;lt;enumeration&amp;gt;&amp;gt;&lt;br&gt;OrigemConhecimento" vertex="1">
+          <mxGeometry x="1400" y="720" width="300" height="98" as="geometry" />
+        </mxCell>
+        <mxCell id="origem-a1" parent="origem" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=6;spacingRight=4;overflow=hidden;portConstraint=eastwest;rotatable=0;whiteSpace=wrap;html=1;" value="DISTRIBUICAO" vertex="1">
+          <mxGeometry y="42" width="300" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="origem-a2" parent="origem" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=6;spacingRight=4;overflow=hidden;portConstraint=eastwest;rotatable=0;whiteSpace=wrap;html=1;" value="TROCA" vertex="1">
+          <mxGeometry y="70" width="300" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="provider" parent="1" style="swimlane;fontStyle=2;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=42;horizontalStack=1;resizeParent=0;resizeParentMax=0;collapsible=1;marginBottom=0;whiteSpace=wrap;html=1;" value="&amp;lt;&amp;lt;interface&amp;gt;&amp;gt;&lt;br&gt;IPokemonProvider" vertex="1">
+          <mxGeometry x="500" y="730" width="390" height="74" as="geometry" />
+        </mxCell>
+        <mxCell id="provider-m1" parent="provider" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=6;spacingRight=4;overflow=hidden;portConstraint=eastwest;rotatable=0;whiteSpace=wrap;html=1;" value="+ buscarPorId(id: int): Pokemon" vertex="1">
+          <mxGeometry y="42" width="390" height="32" as="geometry" />
+        </mxCell>
+        <mxCell id="adapter" parent="1" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=30;horizontalStack=1;resizeParent=0;resizeParentMax=0;collapsible=1;marginBottom=0;whiteSpace=wrap;html=1;" value="PokeApiAdapter" vertex="1">
+          <mxGeometry x="500" y="900" width="390" height="62" as="geometry" />
+        </mxCell>
+        <mxCell id="adapter-m1" parent="adapter" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=6;spacingRight=4;overflow=hidden;portConstraint=eastwest;rotatable=0;whiteSpace=wrap;html=1;" value="+ buscarPorId(id: int): Pokemon" vertex="1">
+          <mxGeometry y="30" width="390" height="32" as="geometry" />
+        </mxCell>
+        <mxCell id="e-jc" edge="1" parent="1" source="jogador" target="colecao" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;jettySize=auto;orthogonalLoop=1;endArrow=open;endFill=1;endSize=10;startArrow=none;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-jc-l" connectable="0" parent="e-jc" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="dono" vertex="1">
+          <mxGeometry relative="1" x="0" as="geometry">
+            <mxPoint x="0" y="-10" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e-jc-1" connectable="0" parent="e-jc" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="1" vertex="1">
+          <mxGeometry relative="1" x="-0.82" as="geometry">
+            <mxPoint x="0" y="0" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e-jc-2" connectable="0" parent="e-jc" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="1" vertex="1">
+          <mxGeometry relative="1" x="0.82" as="geometry">
+            <mxPoint x="0" y="0" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e-ci" edge="1" parent="1" source="colecao" target="icarta" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;jettySize=auto;orthogonalLoop=1;startArrow=diamondThin;startFill=0;startSize=18;endArrow=none;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-ci-l" connectable="0" parent="e-ci" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="cartas" vertex="1">
+          <mxGeometry relative="1" x="0" as="geometry">
+            <mxPoint x="0" y="-10" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e-ci-1" connectable="0" parent="e-ci" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="1" vertex="1">
+          <mxGeometry relative="1" x="-0.82" as="geometry">
+            <mxPoint x="0" y="0" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e-ci-2" connectable="0" parent="e-ci" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="0..*" vertex="1">
+          <mxGeometry relative="1" x="0.82" as="geometry">
+            <mxPoint x="0" y="0" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e-sr" edge="1" parent="1" source="service" target="ileitura" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;jettySize=auto;orthogonalLoop=1;dashed=1;endArrow=block;endFill=0;exitX=0;exitY=0.28;entryX=1;entryY=0.5;" value="">
+          <mxGeometry relative="1" as="geometry">
+            </mxGeometry>
+        </mxCell>
+        <mxCell id="e-sw" edge="1" parent="1" source="service" target="iescrita" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;jettySize=auto;orthogonalLoop=1;dashed=1;endArrow=block;endFill=0;exitX=0;exitY=0.80;entryX=1;entryY=0.5;" value="">
+          <mxGeometry relative="1" as="geometry">
+            </mxGeometry>
+        </mxCell>
+        <mxCell id="e-cr" edge="1" parent="1" source="carta" target="icarta" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;jettySize=auto;orthogonalLoop=1;dashed=1;endArrow=block;endFill=0;exitX=0.5;exitY=0;entryX=0.5;entryY=1;" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-cp" edge="1" parent="1" source="carta" target="pokemon" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;jettySize=auto;orthogonalLoop=1;endArrow=open;endFill=1;endSize=10;startArrow=none;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-cp-l" connectable="0" parent="e-cp" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="pokemon" vertex="1">
+          <mxGeometry relative="1" x="0" as="geometry">
+            <mxPoint x="0" y="-10" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e-cp-1" connectable="0" parent="e-cp" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="*" vertex="1">
+          <mxGeometry relative="1" x="-0.82" as="geometry">
+            <mxPoint x="0" y="0" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e-cp-2" connectable="0" parent="e-cp" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="1" vertex="1">
+          <mxGeometry relative="1" x="0.82" as="geometry">
+            <mxPoint x="0" y="0" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e-co" edge="1" parent="1" source="carta" target="origem" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;jettySize=auto;orthogonalLoop=1;dashed=1;endArrow=open;endFill=0;startArrow=none;exitX=0.5;exitY=1;entryX=0;entryY=0.5;" value="usa">
+          <mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="1080" y="690" /><mxPoint x="1340" y="690" /><mxPoint x="1340" y="769" /></Array></mxGeometry>
+        </mxCell>
+        <mxCell id="e-sp" edge="1" parent="1" source="service" target="provider" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;jettySize=auto;orthogonalLoop=1;dashed=1;endArrow=open;endFill=0;startArrow=none;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" value="depende de">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-pa" edge="1" parent="1" source="adapter" target="provider" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;jettySize=auto;orthogonalLoop=1;dashed=1;endArrow=block;endFill=0;exitX=0.5;exitY=0;entryX=0.5;entryY=1;" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
