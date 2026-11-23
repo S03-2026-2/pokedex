@@ -3,9 +3,12 @@ export interface NamedResource {
   url: string;
 }
 
+type ResourceName = Pick<NamedResource, "name">;
+type ResourceUrl = Pick<NamedResource, "url">;
+
 export interface PokemonListResponse {
   count: number;
-  results: NamedResource[];
+  results: ResourceName[];
 }
 
 export interface PokemonAbilityResponse {
@@ -21,40 +24,43 @@ export interface PokemonResponse {
   name: string;
   height: number;
   weight: number;
-  types: { type: NamedResource }[];
-  stats: { stat: NamedResource; base_stat: number }[];
+  types: { type: ResourceName }[];
+  stats: { stat: ResourceName; base_stat: number }[];
   sprites: PokemonSprite & {
     other?: {
-      'official-artwork'?: PokemonSprite;
-      showdown?: PokemonSprite;
+      "official-artwork"?: PokemonSprite | null;
+      showdown?: PokemonSprite | null;
     } | null;
   };
-  cries?: { latest: string | null; legacy: string | null } | null;
+  cries?: { latest?: string | null; legacy?: string | null } | null;
   abilities: PokemonAbilityResponse[];
-  species: NamedResource;
+  species: ResourceUrl;
 }
 
 interface FlavorTextEntry {
   flavor_text: string;
-  language: NamedResource;
+  language: ResourceName;
 }
 
 export interface PokemonSpeciesResponse {
   flavor_text_entries: FlavorTextEntry[];
-  names: { name: string; language: NamedResource }[];
-  genera: { genus: string; language: NamedResource }[];
-  habitat: NamedResource | null;
-  generation: NamedResource | null;
-  evolution_chain: { url: string } | null;
+  names: { name: string; language: ResourceName }[];
+  genera: { genus: string; language: ResourceName }[];
+  habitat?: ResourceName | null;
+  generation?: ResourceName | null;
+  evolution_chain?: ResourceUrl | null;
 }
 
 export interface AbilityResponse {
-  flavor_text_entries?: FlavorTextEntry[];
+  flavor_text_entries?: FlavorTextEntry[] | null;
 }
 
 export interface EvolutionChainLink {
   species: NamedResource;
-  evolution_details: { min_level: number | null; trigger: NamedResource | null }[];
+  evolution_details: {
+    min_level?: number | null;
+    trigger?: ResourceName | null;
+  }[];
   evolves_to: EvolutionChainLink[];
 }
 

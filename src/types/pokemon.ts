@@ -1,8 +1,16 @@
-import type { PokemonAbilityResponse } from './pokeapi';
-
 type StatName = 'hp' | 'attack' | 'defense' | 'spAtk' | 'spDef' | 'speed';
 
 export type PokemonStats = Partial<Record<StatName, number>>;
+
+export interface PokemonIndexEntry {
+  id: number;
+  name: string;
+}
+
+export interface PokemonPage {
+  count: number;
+  names: string[];
+}
 
 export interface Pokemon {
   id: number;
@@ -17,8 +25,13 @@ export interface Pokemon {
 }
 
 export interface PokemonSummary extends Pokemon {
-  abilitiesRaw: PokemonAbilityResponse[];
+  abilityReferences: PokemonAbilityReference[];
   speciesUrl: string;
+}
+
+export interface PokemonAbilityReference {
+  name: string;
+  url: string;
 }
 
 export interface PokemonAbility {

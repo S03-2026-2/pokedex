@@ -2,19 +2,10 @@ import { useState, useEffect, useMemo } from "react";
 import PokemonCard from "./components/PokemonCard";
 import PokemonModal from "./components/PokemonModal";
 import { TYPE_COLORS } from "./data/pokemon";
-import type {
-  AbilityResponse,
-  EvolutionChainLink,
-  EvolutionChainResponse,
-  NamedResource,
-  PokemonListResponse,
-  PokemonResponse,
-  PokemonSpeciesResponse,
-} from "./types/pokeapi";
+import { PokeApiAdapter } from "./infrastructure/pokeapi/poke-api.adapter";
 import type {
   PokemonDetails,
-  PokemonEvolution,
-  PokemonStats,
+  PokemonIndexEntry,
   PokemonSummary,
 } from "./types/pokemon";
 import {
@@ -31,6 +22,8 @@ import "./App.css";
 
 const PAGE_SIZE = 30;
 const TOTAL_POKEMON_COUNT = 1025;
+const SEARCH_REQUEST_ERROR = "Falha ao consultar a PokéAPI. Tente novamente.";
+const pokeApi = new PokeApiAdapter();
 const TYPE_FILTERS = [
   "ALL",
   ...(Object.keys(TYPE_COLORS) as (keyof typeof TYPE_COLORS)[]),
@@ -45,7 +38,23 @@ const SORT_OPTIONS = [
 
 type TypeFilter = (typeof TYPE_FILTERS)[number];
 type SortOption = (typeof SORT_OPTIONS)[number]["value"];
-type PokemonIndexEntry = NamedResource & { id: number };
+
+async function loadPokemonBatch(names: string[]) {
+  const results = await Promise.allSettled(names.map((name) => pokeApi.getPokemon(name)));
+  const pokemon: PokemonSummary[] = [];
+  let hasRequestError = false;
+
+  for (const result of results) {
+    if (result.status === "rejected") {
+      hasRequestError = true;
+      console.error("Error fetching pokemon detail:", result.reason);
+    } else if (result.value !== null) {
+      pokemon.push(result.value);
+    }
+  }
+
+  return { pokemon, hasRequestError };
+}
 
 export default function App() {
   const [allPokemonIndex, setAllPokemonIndex] = useState<PokemonIndexEntry[]>([]);
@@ -92,69 +101,14 @@ export default function App() {
   useEffect(() => {
     const fetchMasterIndex = async () => {
       try {
-        const res = await fetch(`https://pokeapi.co/api/v2/pokemon?limit=1025`);
-        const data: PokemonListResponse = await res.json();
-        const formatted = data.results.map((p, idx) => ({
-          name: p.name,
-          id: idx + 1,
-          url: p.url,
-        }));
-        setAllPokemonIndex(formatted);
-      } catch (err) {
-        console.error("Error fetching master index:", err);
+        const index = await pokeApi.getPokemonIndex(TOTAL_POKEMON_COUNT);
+        setAllPokemonIndex(index);
+      } catch (error) {
+        console.error("Error fetching master index:", error);
       }
     };
     fetchMasterIndex();
   }, []);
-
-  // Fetch single Pokemon details helper
-  const fetchPokemonDetail = async (
-    idOrName: string | number,
-  ): Promise<PokemonSummary | null> => {
-    try {
-      const res = await fetch(`https://pokeapi.co/api/v2/pokemon/${idOrName}`);
-      if (!res.ok) return null;
-      const data: PokemonResponse = await res.json();
-
-      const types = data.types.map(
-        (t) => t.type.name.charAt(0).toUpperCase() + t.type.name.slice(1),
-      );
-
-      const statsObj: PokemonStats = {};
-      data.stats.forEach((s) => {
-        if (s.stat.name === "hp") statsObj.hp = s.base_stat;
-        if (s.stat.name === "attack") statsObj.attack = s.base_stat;
-        if (s.stat.name === "defense") statsObj.defense = s.base_stat;
-        if (s.stat.name === "special-attack") statsObj.spAtk = s.base_stat;
-        if (s.stat.name === "special-defense") statsObj.spDef = s.base_stat;
-        if (s.stat.name === "speed") statsObj.speed = s.base_stat;
-      });
-
-      const officialArtwork =
-        data.sprites.other?.["official-artwork"]?.front_default ||
-        data.sprites.front_default;
-      const animatedSprite =
-        data.sprites.other?.showdown?.front_default ||
-        data.sprites.front_default;
-
-      return {
-        id: data.id,
-        name: data.name.charAt(0).toUpperCase() + data.name.slice(1),
-        types: types,
-        height: data.height / 10,
-        weight: data.weight / 10,
-        sprite: officialArtwork,
-        animatedSprite: animatedSprite,
-        cries: data.cries?.latest || data.cries?.legacy || null,
-        stats: statsObj,
-        abilitiesRaw: data.abilities,
-        speciesUrl: data.species.url,
-      };
-    } catch (err) {
-      console.error("Error fetching pokemon detail:", err);
-      return null;
-    }
-  };
 
   // Fetch page of 30 Pokemon when page changes (and not searching)
   useEffect(() => {
@@ -164,19 +118,13 @@ export default function App() {
       setLoading(true);
       const offset = (currentPage - 1) * PAGE_SIZE;
       try {
-        const res = await fetch(
-          `https://pokeapi.co/api/v2/pokemon?offset=${offset}&limit=${PAGE_SIZE}`,
-        );
-        const data: PokemonListResponse = await res.json();
-        setTotalCount(data.count || TOTAL_POKEMON_COUNT);
+        const page = await pokeApi.getPokemonPage(offset, PAGE_SIZE);
+        setTotalCount(page.count || TOTAL_POKEMON_COUNT);
 
-        const detailPromises = data.results.map((p) =>
-          fetchPokemonDetail(p.name),
-        );
-        const details = await Promise.all(detailPromises);
-        setPokemonList(details.filter((pokemon) => pokemon !== null));
-      } catch (err) {
-        console.error("Error fetching page:", err);
+        const { pokemon } = await loadPokemonBatch(page.names);
+        setPokemonList(pokemon);
+      } catch (error) {
+        console.error("Error fetching page:", error);
       } finally {
         setLoading(false);
       }
@@ -205,22 +153,30 @@ export default function App() {
         )
         .slice(0, 30); // Cap results to 30 for performance
 
-      if (matches.length > 0) {
-        const detailPromises = matches.map((m) => fetchPokemonDetail(m.name));
-        const results = await Promise.all(detailPromises);
-        setSearchedPokemon(results.filter((pokemon) => pokemon !== null));
-      } else {
-        // Fallback direct API try in case of special forms
-        const directResult = await fetchPokemonDetail(term);
-        if (directResult) {
-          setSearchedPokemon([directResult]);
+      try {
+        if (matches.length > 0) {
+          const { pokemon, hasRequestError } = await loadPokemonBatch(matches.map(({ name }) => name));
+          setSearchedPokemon(pokemon);
+          if (pokemon.length === 0 && hasRequestError) {
+            setSearchError(SEARCH_REQUEST_ERROR);
+          }
         } else {
-          setSearchedPokemon([]);
-          setSearchError(`Nenhum Pokémon encontrado com "${searchTerm}".`);
+          // Fallback direct API try in case of special forms
+          const directResult = await pokeApi.getPokemon(term);
+          if (directResult) {
+            setSearchedPokemon([directResult]);
+          } else {
+            setSearchedPokemon([]);
+            setSearchError(`Nenhum Pokémon encontrado com "${searchTerm}".`);
+          }
         }
+      } catch (error) {
+        console.error("Error fetching pokemon detail:", error);
+        setSearchedPokemon([]);
+        setSearchError(SEARCH_REQUEST_ERROR);
+      } finally {
+        setIsSearching(false);
       }
-
-      setIsSearching(false);
     }, 350);
 
     return () => clearTimeout(timer);
@@ -232,104 +188,10 @@ export default function App() {
     setLoadingModal(true);
 
     try {
-      const speciesRes = await fetch(pokemon.speciesUrl);
-      const speciesData: PokemonSpeciesResponse = await speciesRes.json();
-
-      const flavorEntry =
-        speciesData.flavor_text_entries.find(
-          (e) => e.language.name === "pt-br",
-        ) ||
-        speciesData.flavor_text_entries.find((e) => e.language.name === "en");
-      const description = flavorEntry
-        ? flavorEntry.flavor_text.replace(/[\n\f]/g, " ")
-        : "Sem descrição disponível.";
-
-      const jaNameObj = speciesData.names.find(
-        (n) => n.language.name === "ja-Hrkt",
-      );
-      const japaneseName = jaNameObj ? jaNameObj.name : pokemon.name;
-
-      const generaObj =
-        speciesData.genera.find((g) => g.language.name === "pt-br") ||
-        speciesData.genera.find((g) => g.language.name === "en");
-      const category = generaObj
-        ? generaObj.genus.replace(" Pokémon", "")
-        : "Desconhecido";
-
-      const habitat = speciesData.habitat
-        ? speciesData.habitat.name
-        : "Desconhecido";
-      const generation =
-        speciesData.generation?.name.split("-")[1]?.toUpperCase() || "1";
-
-      const abilities = await Promise.all(
-        pokemon.abilitiesRaw.map(async (ab) => {
-          try {
-            const abRes = await fetch(ab.ability.url);
-            const abData: AbilityResponse = await abRes.json();
-            const effectEntry =
-              abData.flavor_text_entries?.find(
-                (e) => e.language.name === "pt-br",
-              ) ||
-              abData.flavor_text_entries?.find((e) => e.language.name === "en");
-            return {
-              name: ab.ability.name
-                .split("-")
-                .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-                .join(" "),
-              description: effectEntry
-                ? effectEntry.flavor_text.replace(/[\n\f]/g, " ")
-                : "Habilidade especial.",
-            };
-          } catch {
-            return {
-              name: ab.ability.name,
-              description: "Habilidade especial.",
-            };
-          }
-        }),
-      );
-
-      const evolutions: PokemonEvolution[] = [];
-      if (speciesData.evolution_chain?.url) {
-        try {
-          const evoRes = await fetch(speciesData.evolution_chain.url);
-          const evoData: EvolutionChainResponse = await evoRes.json();
-
-          let curr: EvolutionChainLink | undefined = evoData.chain;
-          while (curr) {
-            const evoName = curr.species.name;
-            const evoId = curr.species.url.split("/").filter(Boolean).pop();
-            const minLevel =
-              curr.evolution_details[0]?.min_level ||
-              curr.evolution_details[0]?.trigger?.name ||
-              1;
-
-            evolutions.push({
-              id: Number(evoId),
-              name: evoName.charAt(0).toUpperCase() + evoName.slice(1),
-              level: minLevel,
-              sprite: `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${evoId}.png`,
-            });
-            curr = curr.evolves_to[0];
-          }
-        } catch (e) {
-          console.error("Evolution fetch error", e);
-        }
-      }
-
-      setModalDetails({
-        ...pokemon,
-        japaneseName,
-        category,
-        habitat,
-        generation,
-        description,
-        abilities,
-        evolutions,
-      });
-    } catch (err) {
-      console.error("Error loading extra modal details", err);
+      const details = await pokeApi.getPokemonDetails(pokemon);
+      setModalDetails({ ...pokemon, ...details });
+    } catch (error) {
+      console.error("Error loading extra modal details", error);
       setModalDetails(pokemon);
     } finally {
       setLoadingModal(false);
