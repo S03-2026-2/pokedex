@@ -1,5 +1,6 @@
 import type { ZodType } from "zod";
 import type { PokemonProvider } from "../../providers/pokemon-provider";
+import { normalizePokemonLookup } from "../../providers/pokemon-provider";
 import {
   abilityResponseSchema,
   evolutionChainResponseSchema,
@@ -59,7 +60,7 @@ export class PokeApiAdapter implements PokemonProvider {
   async getPokemon(idOrName: string | number, signal?: AbortSignal): Promise<PokemonSummary | null> {
     try {
       const data = await this.fetchJson(
-        `${POKEMON_URL}/${encodeURIComponent(idOrName)}`,
+        `${POKEMON_URL}/${encodeURIComponent(normalizePokemonLookup(idOrName))}`,
         pokemonResponseSchema,
         signal,
       );

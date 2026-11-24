@@ -5,6 +5,13 @@ import type {
   PokemonSummary,
 } from "../types/pokemon";
 
+export function normalizePokemonLookup(idOrName: string | number): string | number {
+  if (typeof idOrName === "number") return idOrName;
+
+  const lookup = idOrName.trim().toLowerCase();
+  return /^\d+$/.test(lookup) ? lookup.replace(/^0+(?=\d)/, "") : lookup;
+}
+
 export interface PokemonProvider {
   getPokemonIndex(
     limit: number,
