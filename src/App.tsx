@@ -1,14 +1,13 @@
-import { useState, useEffect, useMemo } from "react";
-import { z } from "zod";
+import { useMemo, useState } from "react";
 import PokemonCard from "./components/PokemonCard";
 import PokemonModal from "./components/PokemonModal";
 import { TYPE_COLORS } from "./data/pokemon";
+import { useFavorites } from "./hooks/useFavorites";
+import { usePokemonDetails } from "./hooks/usePokemonDetails";
+import { usePokemonList } from "./hooks/usePokemonList";
+import { usePokemonSearch } from "./hooks/usePokemonSearch";
+import type { FavoritesStorage } from "./providers/favorites-storage";
 import type { PokemonProvider } from "./providers/pokemon-provider";
-import type {
-  PokemonDetails,
-  PokemonIndexEntry,
-  PokemonSummary,
-} from "./types/pokemon";
 import {
   Search,
   Heart,
@@ -21,10 +20,6 @@ import {
 } from "lucide-react";
 import "./App.css";
 
-const PAGE_SIZE = 30;
-const TOTAL_POKEMON_COUNT = 1025;
-const FAVORITES_KEY = "cyberdex_favs";
-const favoritesSchema = z.array(z.number().int().positive());
 const TYPE_FILTERS = [
   "ALL",
   ...(Object.keys(TYPE_COLORS) as (keyof typeof TYPE_COLORS)[]),
@@ -39,233 +34,36 @@ const SORT_OPTIONS = [
 
 type TypeFilter = (typeof TYPE_FILTERS)[number];
 type SortOption = (typeof SORT_OPTIONS)[number]["value"];
-type PokemonListResult =
-  | { status: "success"; pokemon: PokemonSummary[] }
-  | { status: "error" };
-type SearchResult = PokemonListResult | { status: "not-found" };
-type PokemonIndexResult =
-  | { status: "success"; entries: PokemonIndexEntry[] }
-  | { status: "error" };
-type ModalResult =
-  | { status: "success"; details: PokemonDetails }
-  | { status: "error" };
-
-function readFavorites(): number[] {
-  try {
-    const saved = localStorage.getItem(FAVORITES_KEY);
-    if (saved !== null) {
-      const data: unknown = JSON.parse(saved);
-      const parsed = favoritesSchema.safeParse(data);
-      if (parsed.success) return parsed.data;
-    }
-  } catch {
-    // Keep the default favorites when storage is unavailable or the JSON is corrupt.
-  }
-  return [25, 6, 150];
-}
-
-async function loadPokemonBatch(
-  pokemonProvider: PokemonProvider,
-  names: string[],
-  signal: AbortSignal,
-): Promise<PokemonListResult> {
-  const results = await Promise.allSettled(
-    names.map((name) => pokemonProvider.getPokemon(name, signal)),
-  );
-  const pokemon: PokemonSummary[] = [];
-  let hasRequestError = false;
-
-  for (const result of results) {
-    if (result.status === "rejected") {
-      hasRequestError = true;
-      if (!signal.aborted) console.warn("Falha ao carregar um Pokémon.", result.reason);
-    } else if (result.value !== null) {
-      pokemon.push(result.value);
-    }
-  }
-
-  return pokemon.length === 0 && hasRequestError
-    ? { status: "error" }
-    : { status: "success", pokemon };
-}
 
 interface AppProps {
   pokemonProvider: PokemonProvider;
+  favoritesStorage: FavoritesStorage;
 }
 
-export default function App({ pokemonProvider }: AppProps) {
-  const [indexResult, setIndexResult] = useState<PokemonIndexResult | null>(null);
-  const [indexAttempt, setIndexAttempt] = useState(0);
-  const [pageResult, setPageResult] = useState<PokemonListResult | null>(null);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalCount, setTotalCount] = useState(TOTAL_POKEMON_COUNT);
-  const [requestAttempt, setRequestAttempt] = useState(0);
+export default function App({ pokemonProvider, favoritesStorage }: AppProps) {
+  const search = usePokemonSearch(pokemonProvider);
+  const list = usePokemonList(pokemonProvider, !search.isActive);
+  const details = usePokemonDetails(pokemonProvider);
+  const {
+    count: favoriteCount,
+    isFavorite,
+    toggleFavorite,
+    storageFailed: favoritesStorageFailed,
+  } = useFavorites(favoritesStorage);
 
-  const [searchTerm, setSearchTerm] = useState("");
-  const [searchResult, setSearchResult] = useState<{ term: string; result: SearchResult } | null>(null);
-
+  const { searchTerm, setSearchTerm, isActive: isSearchActive, result: activeSearch } = search;
+  const { currentPage, totalCount, totalPages, firstItem, lastItem } = list;
+  const selectedPokemon = details.pokemon;
   const [selectedType, setSelectedType] = useState<TypeFilter>("ALL");
   const [favoritesOnly, setFavoritesOnly] = useState(false);
-  const [favorites, setFavorites] = useState(readFavorites);
-  const [favoritesStorageFailed, setFavoritesStorageFailed] = useState(false);
-
-  const [selectedPokemon, setSelectedPokemon] = useState<PokemonSummary | null>(null);
-  const [modalResult, setModalResult] = useState<ModalResult | null>(null);
-  const [modalAttempt, setModalAttempt] = useState(0);
   const [sortBy, setSortBy] = useState<SortOption>("id-asc");
 
-  const term = searchTerm.trim().toLowerCase();
-  const isSearchActive = term.length > 0;
-  const activeSearch = searchResult?.term === searchTerm ? searchResult.result : null;
-  const activeResult = isSearchActive ? activeSearch : pageResult;
+  const activeResult = isSearchActive ? activeSearch : list.result;
   const requestFailed = activeResult?.status === "error";
-  const pagePokemon = pageResult?.status === "success" ? pageResult.pokemon : null;
-  const searchedPokemon = activeSearch?.status === "success" ? activeSearch.pokemon : null;
-
-  // Save favorites to LocalStorage
-  useEffect(() => {
-    try {
-      localStorage.setItem(FAVORITES_KEY, JSON.stringify(favorites));
-      setFavoritesStorageFailed(false);
-    } catch (error) {
-      console.warn("Falha ao salvar os favoritos.", error);
-      setFavoritesStorageFailed(true);
-    }
-  }, [favorites]);
-
-  // Load master list index on mount for instantaneous search matching
-  useEffect(() => {
-    const controller = new AbortController();
-    const { signal } = controller;
-    setIndexResult(null);
-    const fetchMasterIndex = async () => {
-      try {
-        const entries = await pokemonProvider.getPokemonIndex(TOTAL_POKEMON_COUNT, signal);
-        if (!signal.aborted) setIndexResult({ status: "success", entries });
-      } catch (error) {
-        if (signal.aborted) return;
-        console.warn("Falha ao carregar o índice de busca.", error);
-        setIndexResult({ status: "error" });
-      }
-    };
-    void fetchMasterIndex();
-    return () => controller.abort();
-  }, [indexAttempt, pokemonProvider]);
-
-  // Fetch page of 30 Pokemon when page changes (and not searching)
-  useEffect(() => {
-    if (isSearchActive) return;
-
-    const controller = new AbortController();
-    const { signal } = controller;
-    setPageResult(null);
-    const fetchPage = async () => {
-      const offset = (currentPage - 1) * PAGE_SIZE;
-      try {
-        const page = await pokemonProvider.getPokemonPage(offset, PAGE_SIZE, signal);
-        if (signal.aborted) return;
-        setTotalCount(page.count);
-
-        const result = await loadPokemonBatch(pokemonProvider, page.names, signal);
-        if (!signal.aborted) setPageResult(result);
-      } catch (error) {
-        if (signal.aborted) return;
-        console.error("Falha ao carregar a página da Pokédex.", error);
-        setPageResult({ status: "error" });
-      }
-    };
-
-    void fetchPage();
-    return () => controller.abort();
-  }, [currentPage, isSearchActive, requestAttempt, pokemonProvider]);
-
-  // Robust Search Implementation (Substring & Prefix Matching across all 1025 Pokemon)
-  useEffect(() => {
-    setSearchResult(null);
-    if (!term) return;
-
-    const controller = new AbortController();
-    const { signal } = controller;
-    const timer = setTimeout(async () => {
-      const entries = indexResult?.status === "success" ? indexResult.entries : [];
-      const matches = entries
-        .filter(
-          (p) => p.name.toLowerCase().includes(term) || String(p.id) === term,
-        )
-        .slice(0, 30); // Cap results to 30 for performance
-
-      try {
-        let result: SearchResult;
-        if (matches.length > 0) {
-          result = await loadPokemonBatch(
-            pokemonProvider,
-            matches.map(({ name }) => name),
-            signal,
-          );
-        } else {
-          // Fallback direct API try in case of special forms
-          const directResult = await pokemonProvider.getPokemon(term, signal);
-          if (directResult) {
-            result = { status: "success", pokemon: [directResult] };
-          } else {
-            if (indexResult === null) return; // The index can still find a partial match.
-            result = { status: indexResult.status === "error" ? "error" : "not-found" };
-          }
-        }
-        if (!signal.aborted) setSearchResult({ term: searchTerm, result });
-      } catch (error) {
-        if (signal.aborted) return;
-        console.error("Falha ao pesquisar na PokéAPI.", error);
-        setSearchResult({ term: searchTerm, result: { status: "error" } });
-      }
-    }, 350);
-
-    return () => {
-      clearTimeout(timer);
-      controller.abort();
-    };
-  }, [term, searchTerm, indexResult, requestAttempt, pokemonProvider]);
-
-  useEffect(() => {
-    if (!selectedPokemon) return;
-
-    const controller = new AbortController();
-    const { signal } = controller;
-    const fetchModalDetails = async () => {
-      try {
-        const details = await pokemonProvider.getPokemonDetails(selectedPokemon, signal);
-        if (!signal.aborted) setModalResult({ status: "success", details });
-      } catch (error) {
-        if (signal.aborted) return;
-        console.error("Falha ao carregar os detalhes do Pokémon.", error);
-        setModalResult({ status: "error" });
-      }
-    };
-    void fetchModalDetails();
-    return () => controller.abort();
-  }, [selectedPokemon, modalAttempt, pokemonProvider]);
-
-  const handleOpenModal = (pokemon: PokemonSummary) => {
-    setModalResult(null);
-    setSelectedPokemon(pokemon);
-  };
-
-  const retryCurrentRequest = () => {
-    if (isSearchActive && indexResult?.status === "error") {
-      setIndexAttempt((attempt) => attempt + 1);
-    }
-    setRequestAttempt((attempt) => attempt + 1);
-  };
-
-  const toggleFavorite = (id: number) => {
-    setFavorites((prev) =>
-      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id],
-    );
-  };
 
   // Display List Determination (Paginated vs Searched)
   const displayList = useMemo(() => {
-    const source = (isSearchActive ? searchedPokemon : pagePokemon) ?? [];
+    const source = activeResult?.status === "success" ? activeResult.pokemon : [];
 
     return source
       .filter((pokemon) => {
@@ -274,7 +72,7 @@ export default function App({ pokemonProvider }: AppProps) {
           pokemon.types
             .map((t) => t.toUpperCase())
             .includes(selectedType.toUpperCase());
-        const matchesFav = !favoritesOnly || favorites.includes(pokemon.id);
+        const matchesFav = !favoritesOnly || isFavorite(pokemon.id);
         return matchesType && matchesFav;
       })
       .sort((a, b) => {
@@ -287,16 +85,12 @@ export default function App({ pokemonProvider }: AppProps) {
         return 0;
       });
   }, [
-    isSearchActive,
-    searchedPokemon,
-    pagePokemon,
+    activeResult,
     selectedType,
     favoritesOnly,
-    favorites,
+    isFavorite,
     sortBy,
   ]);
-
-  const totalPages = Math.ceil(totalCount / PAGE_SIZE);
 
   return (
     <div className="app-container">
@@ -325,7 +119,7 @@ export default function App({ pokemonProvider }: AppProps) {
           </div>
           <div className="stat-pill accent">
             <Heart size={14} fill="#ff3b5c" color="#ff3b5c" />
-            <span className="stat-pill-num">{favorites.length}</span>
+            <span className="stat-pill-num">{favoriteCount}</span>
             <span className="stat-pill-label">Favoritos</span>
           </div>
         </div>
@@ -423,7 +217,7 @@ export default function App({ pokemonProvider }: AppProps) {
           <div className="empty-state glass-panel" role="alert">
             <h3>{isSearchActive ? "Falha na busca" : "Falha ao carregar a página"}</h3>
             <p>Tente novamente para consultar a PokéAPI.</p>
-            <button type="button" className="reset-filters-btn" onClick={retryCurrentRequest}>
+            <button type="button" className="reset-filters-btn" onClick={isSearchActive ? search.retry : list.retry}>
               <RefreshCw size={16} />
               <span>Tentar novamente</span>
             </button>
@@ -435,9 +229,9 @@ export default function App({ pokemonProvider }: AppProps) {
                 <PokemonCard
                   key={pokemon.id}
                   pokemon={pokemon}
-                  isFavorite={favorites.includes(pokemon.id)}
+                  isFavorite={isFavorite(pokemon.id)}
                   onToggleFavorite={toggleFavorite}
-                  onClick={handleOpenModal}
+                  onClick={details.open}
                 />
               ))}
             </div>
@@ -447,7 +241,7 @@ export default function App({ pokemonProvider }: AppProps) {
               <div className="pagination-bar glass-panel">
                 <button
                   className="pagination-btn"
-                  onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
+                  onClick={list.previousPage}
                   disabled={currentPage === 1}
                 >
                   <ChevronLeft size={18} />
@@ -461,17 +255,13 @@ export default function App({ pokemonProvider }: AppProps) {
                     <strong>{totalPages}</strong>
                   </span>
                   <span className="pagination-subtext">
-                    Exibindo {(currentPage - 1) * PAGE_SIZE + 1} -{" "}
-                    {Math.min(currentPage * PAGE_SIZE, totalCount)} de{" "}
-                    {totalCount}
+                    Exibindo {firstItem} - {lastItem} de {totalCount}
                   </span>
                 </div>
 
                 <button
                   className="pagination-btn"
-                  onClick={() =>
-                    setCurrentPage((p) => Math.min(p + 1, totalPages))
-                  }
+                  onClick={list.nextPage}
                   disabled={currentPage === totalPages}
                 >
                   <span>Próxima</span>
@@ -508,20 +298,12 @@ export default function App({ pokemonProvider }: AppProps) {
       {selectedPokemon && (
         <PokemonModal
           key={selectedPokemon.id}
-          pokemon={modalResult?.status === "success"
-            ? { ...selectedPokemon, ...modalResult.details }
-            : selectedPokemon}
-          isLoading={modalResult === null}
-          hasDetailsError={modalResult?.status === "error"}
-          onRetryDetails={() => {
-            setModalResult(null);
-            setModalAttempt((attempt) => attempt + 1);
-          }}
-          onClose={() => {
-            setSelectedPokemon(null);
-            setModalResult(null);
-          }}
-          isFavorite={favorites.includes(selectedPokemon.id)}
+          pokemon={selectedPokemon}
+          isLoading={details.isLoading}
+          hasDetailsError={details.hasError}
+          onRetryDetails={details.retry}
+          onClose={details.close}
+          isFavorite={isFavorite(selectedPokemon.id)}
           onToggleFavorite={toggleFavorite}
         />
       )}
