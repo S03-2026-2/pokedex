@@ -1,8 +1,9 @@
 import { useState, useEffect, useMemo } from "react";
+import { z } from "zod";
 import PokemonCard from "./components/PokemonCard";
 import PokemonModal from "./components/PokemonModal";
 import { TYPE_COLORS } from "./data/pokemon";
-import { PokeApiAdapter } from "./infrastructure/pokeapi/poke-api.adapter";
+import { PokeApiAdapter } from "./services/pokeapi/poke-api.adapter";
 import type {
   PokemonDetails,
   PokemonIndexEntry,
@@ -22,7 +23,8 @@ import "./App.css";
 
 const PAGE_SIZE = 30;
 const TOTAL_POKEMON_COUNT = 1025;
-const SEARCH_REQUEST_ERROR = "Falha ao consultar a PokéAPI. Tente novamente.";
+const FAVORITES_KEY = "cyberdex_favs";
+const favoritesSchema = z.array(z.number().int().positive());
 const pokeApi = new PokeApiAdapter();
 const TYPE_FILTERS = [
   "ALL",
@@ -38,164 +40,208 @@ const SORT_OPTIONS = [
 
 type TypeFilter = (typeof TYPE_FILTERS)[number];
 type SortOption = (typeof SORT_OPTIONS)[number]["value"];
+type PokemonListResult =
+  | { status: "success"; pokemon: PokemonSummary[] }
+  | { status: "error" };
+type SearchResult = PokemonListResult | { status: "not-found" };
+type PokemonIndexResult =
+  | { status: "success"; entries: PokemonIndexEntry[] }
+  | { status: "error" };
+type ModalResult =
+  | { status: "success"; details: PokemonDetails }
+  | { status: "error" };
 
-async function loadPokemonBatch(names: string[]) {
-  const results = await Promise.allSettled(names.map((name) => pokeApi.getPokemon(name)));
+function readFavorites(): number[] {
+  try {
+    const saved = localStorage.getItem(FAVORITES_KEY);
+    if (saved !== null) {
+      const data: unknown = JSON.parse(saved);
+      const parsed = favoritesSchema.safeParse(data);
+      if (parsed.success) return parsed.data;
+    }
+  } catch {
+    // Keep the default favorites when storage is unavailable or the JSON is corrupt.
+  }
+  return [25, 6, 150];
+}
+
+async function loadPokemonBatch(names: string[], signal: AbortSignal): Promise<PokemonListResult> {
+  const results = await Promise.allSettled(names.map((name) => pokeApi.getPokemon(name, signal)));
   const pokemon: PokemonSummary[] = [];
   let hasRequestError = false;
 
   for (const result of results) {
     if (result.status === "rejected") {
       hasRequestError = true;
-      console.error("Error fetching pokemon detail:", result.reason);
+      if (!signal.aborted) console.warn("Falha ao carregar um Pokémon.", result.reason);
     } else if (result.value !== null) {
       pokemon.push(result.value);
     }
   }
 
-  return { pokemon, hasRequestError };
+  return pokemon.length === 0 && hasRequestError
+    ? { status: "error" }
+    : { status: "success", pokemon };
 }
 
 export default function App() {
-  const [allPokemonIndex, setAllPokemonIndex] = useState<PokemonIndexEntry[]>([]);
-  const [pokemonList, setPokemonList] = useState<PokemonSummary[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [indexResult, setIndexResult] = useState<PokemonIndexResult | null>(null);
+  const [indexAttempt, setIndexAttempt] = useState(0);
+  const [pageResult, setPageResult] = useState<PokemonListResult | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalCount, setTotalCount] = useState(TOTAL_POKEMON_COUNT);
+  const [requestAttempt, setRequestAttempt] = useState(0);
 
   const [searchTerm, setSearchTerm] = useState("");
-  const [searchedPokemon, setSearchedPokemon] = useState<PokemonSummary[] | null>(null);
-  const [isSearching, setIsSearching] = useState(false);
-  const [searchError, setSearchError] = useState<string | null>(null);
+  const [searchResult, setSearchResult] = useState<{ term: string; result: SearchResult } | null>(null);
 
   const [selectedType, setSelectedType] = useState<TypeFilter>("ALL");
   const [favoritesOnly, setFavoritesOnly] = useState(false);
-  const [favorites, setFavorites] = useState<number[]>(() => {
-    const saved = localStorage.getItem("cyberdex_favs");
-    if (saved) {
-      try {
-        const ids: unknown = JSON.parse(saved);
-        if (Array.isArray(ids) && ids.every((id) => typeof id === "number")) {
-          return ids;
-        }
-      } catch {
-        // Fall back to the default favorites if the saved JSON is invalid.
-      }
-    }
-    return [25, 6, 150];
-  });
+  const [favorites, setFavorites] = useState(readFavorites);
+  const [favoritesStorageFailed, setFavoritesStorageFailed] = useState(false);
 
   const [selectedPokemon, setSelectedPokemon] = useState<PokemonSummary | null>(null);
-  const [loadingModal, setLoadingModal] = useState(false);
-  const [modalDetails, setModalDetails] = useState<
-    (PokemonSummary & Partial<PokemonDetails>) | null
-  >(null);
+  const [modalResult, setModalResult] = useState<ModalResult | null>(null);
+  const [modalAttempt, setModalAttempt] = useState(0);
   const [sortBy, setSortBy] = useState<SortOption>("id-asc");
+
+  const term = searchTerm.trim().toLowerCase();
+  const isSearchActive = term.length > 0;
+  const activeSearch = searchResult?.term === searchTerm ? searchResult.result : null;
+  const activeResult = isSearchActive ? activeSearch : pageResult;
+  const requestFailed = activeResult?.status === "error";
+  const pagePokemon = pageResult?.status === "success" ? pageResult.pokemon : null;
+  const searchedPokemon = activeSearch?.status === "success" ? activeSearch.pokemon : null;
 
   // Save favorites to LocalStorage
   useEffect(() => {
-    localStorage.setItem("cyberdex_favs", JSON.stringify(favorites));
+    try {
+      localStorage.setItem(FAVORITES_KEY, JSON.stringify(favorites));
+      setFavoritesStorageFailed(false);
+    } catch (error) {
+      console.warn("Falha ao salvar os favoritos.", error);
+      setFavoritesStorageFailed(true);
+    }
   }, [favorites]);
 
   // Load master list index on mount for instantaneous search matching
   useEffect(() => {
+    const controller = new AbortController();
+    const { signal } = controller;
+    setIndexResult(null);
     const fetchMasterIndex = async () => {
       try {
-        const index = await pokeApi.getPokemonIndex(TOTAL_POKEMON_COUNT);
-        setAllPokemonIndex(index);
+        const entries = await pokeApi.getPokemonIndex(TOTAL_POKEMON_COUNT, signal);
+        if (!signal.aborted) setIndexResult({ status: "success", entries });
       } catch (error) {
-        console.error("Error fetching master index:", error);
+        if (signal.aborted) return;
+        console.warn("Falha ao carregar o índice de busca.", error);
+        setIndexResult({ status: "error" });
       }
     };
-    fetchMasterIndex();
-  }, []);
+    void fetchMasterIndex();
+    return () => controller.abort();
+  }, [indexAttempt]);
 
   // Fetch page of 30 Pokemon when page changes (and not searching)
   useEffect(() => {
-    if (searchTerm.trim()) return;
+    if (isSearchActive) return;
 
+    const controller = new AbortController();
+    const { signal } = controller;
+    setPageResult(null);
     const fetchPage = async () => {
-      setLoading(true);
       const offset = (currentPage - 1) * PAGE_SIZE;
       try {
-        const page = await pokeApi.getPokemonPage(offset, PAGE_SIZE);
-        setTotalCount(page.count || TOTAL_POKEMON_COUNT);
+        const page = await pokeApi.getPokemonPage(offset, PAGE_SIZE, signal);
+        if (signal.aborted) return;
+        setTotalCount(page.count);
 
-        const { pokemon } = await loadPokemonBatch(page.names);
-        setPokemonList(pokemon);
+        const result = await loadPokemonBatch(page.names, signal);
+        if (!signal.aborted) setPageResult(result);
       } catch (error) {
-        console.error("Error fetching page:", error);
-      } finally {
-        setLoading(false);
+        if (signal.aborted) return;
+        console.error("Falha ao carregar a página da Pokédex.", error);
+        setPageResult({ status: "error" });
       }
     };
 
-    fetchPage();
-  }, [currentPage, searchTerm]);
+    void fetchPage();
+    return () => controller.abort();
+  }, [currentPage, isSearchActive, requestAttempt]);
 
   // Robust Search Implementation (Substring & Prefix Matching across all 1025 Pokemon)
   useEffect(() => {
-    const term = searchTerm.trim().toLowerCase();
-    if (!term) {
-      setSearchedPokemon(null);
-      setSearchError(null);
-      return;
-    }
+    setSearchResult(null);
+    if (!term) return;
 
+    const controller = new AbortController();
+    const { signal } = controller;
     const timer = setTimeout(async () => {
-      setIsSearching(true);
-      setSearchError(null);
-
-      // Find matching items from master index
-      const matches = allPokemonIndex
+      const entries = indexResult?.status === "success" ? indexResult.entries : [];
+      const matches = entries
         .filter(
           (p) => p.name.toLowerCase().includes(term) || String(p.id) === term,
         )
         .slice(0, 30); // Cap results to 30 for performance
 
       try {
+        let result: SearchResult;
         if (matches.length > 0) {
-          const { pokemon, hasRequestError } = await loadPokemonBatch(matches.map(({ name }) => name));
-          setSearchedPokemon(pokemon);
-          if (pokemon.length === 0 && hasRequestError) {
-            setSearchError(SEARCH_REQUEST_ERROR);
-          }
+          result = await loadPokemonBatch(matches.map(({ name }) => name), signal);
         } else {
           // Fallback direct API try in case of special forms
-          const directResult = await pokeApi.getPokemon(term);
+          const directResult = await pokeApi.getPokemon(term, signal);
           if (directResult) {
-            setSearchedPokemon([directResult]);
+            result = { status: "success", pokemon: [directResult] };
           } else {
-            setSearchedPokemon([]);
-            setSearchError(`Nenhum Pokémon encontrado com "${searchTerm}".`);
+            if (indexResult === null) return; // The index can still find a partial match.
+            result = { status: indexResult.status === "error" ? "error" : "not-found" };
           }
         }
+        if (!signal.aborted) setSearchResult({ term: searchTerm, result });
       } catch (error) {
-        console.error("Error fetching pokemon detail:", error);
-        setSearchedPokemon([]);
-        setSearchError(SEARCH_REQUEST_ERROR);
-      } finally {
-        setIsSearching(false);
+        if (signal.aborted) return;
+        console.error("Falha ao pesquisar na PokéAPI.", error);
+        setSearchResult({ term: searchTerm, result: { status: "error" } });
       }
     }, 350);
 
-    return () => clearTimeout(timer);
-  }, [searchTerm, allPokemonIndex]);
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [term, searchTerm, indexResult, requestAttempt]);
 
-  // Open Modal Details
-  const handleOpenModal = async (pokemon: PokemonSummary) => {
+  useEffect(() => {
+    if (!selectedPokemon) return;
+
+    const controller = new AbortController();
+    const { signal } = controller;
+    const fetchModalDetails = async () => {
+      try {
+        const details = await pokeApi.getPokemonDetails(selectedPokemon, signal);
+        if (!signal.aborted) setModalResult({ status: "success", details });
+      } catch (error) {
+        if (signal.aborted) return;
+        console.error("Falha ao carregar os detalhes do Pokémon.", error);
+        setModalResult({ status: "error" });
+      }
+    };
+    void fetchModalDetails();
+    return () => controller.abort();
+  }, [selectedPokemon, modalAttempt]);
+
+  const handleOpenModal = (pokemon: PokemonSummary) => {
+    setModalResult(null);
     setSelectedPokemon(pokemon);
-    setLoadingModal(true);
+  };
 
-    try {
-      const details = await pokeApi.getPokemonDetails(pokemon);
-      setModalDetails({ ...pokemon, ...details });
-    } catch (error) {
-      console.error("Error loading extra modal details", error);
-      setModalDetails(pokemon);
-    } finally {
-      setLoadingModal(false);
+  const retryCurrentRequest = () => {
+    if (isSearchActive && indexResult?.status === "error") {
+      setIndexAttempt((attempt) => attempt + 1);
     }
+    setRequestAttempt((attempt) => attempt + 1);
   };
 
   const toggleFavorite = (id: number) => {
@@ -206,7 +252,7 @@ export default function App() {
 
   // Display List Determination (Paginated vs Searched)
   const displayList = useMemo(() => {
-    const source = searchTerm.trim() ? searchedPokemon || [] : pokemonList;
+    const source = (isSearchActive ? searchedPokemon : pagePokemon) ?? [];
 
     return source
       .filter((pokemon) => {
@@ -228,9 +274,9 @@ export default function App() {
         return 0;
       });
   }, [
-    searchTerm,
+    isSearchActive,
     searchedPokemon,
-    pokemonList,
+    pagePokemon,
     selectedType,
     favoritesOnly,
     favorites,
@@ -276,6 +322,9 @@ export default function App() {
       <main className="pokedex-main">
         {/* Search & Filters */}
         <section className="controls-panel glass-panel">
+          {favoritesStorageFailed && (
+            <p role="status">Os favoritos serão mantidos apenas enquanto a Pokédex estiver aberta.</p>
+          )}
           <div className="search-input-wrapper">
             <Search className="search-icon" size={20} />
             <input
@@ -285,7 +334,7 @@ export default function App() {
               onChange={(e) => setSearchTerm(e.target.value)}
               className="search-input"
             />
-            {isSearching ? (
+            {isSearchActive && activeSearch === null ? (
               <Loader2
                 className="clear-search-btn spin-icon"
                 size={18}
@@ -347,15 +396,24 @@ export default function App() {
         </section>
 
         {/* Loading Spinner */}
-        {loading || isSearching ? (
+        {activeResult === null ? (
           <div className="empty-state glass-panel">
             <Loader2 size={48} color="#ff3b5c" className="spin-icon" />
             <h3>
-              {isSearching
+              {isSearchActive
                 ? `Buscando "${searchTerm}" na PokéAPI...`
                 : `Carregando Página ${currentPage}...`}
             </h3>
             <p>Aguarde um instante...</p>
+          </div>
+        ) : requestFailed ? (
+          <div className="empty-state glass-panel" role="alert">
+            <h3>{isSearchActive ? "Falha na busca" : "Falha ao carregar a página"}</h3>
+            <p>Tente novamente para consultar a PokéAPI.</p>
+            <button type="button" className="reset-filters-btn" onClick={retryCurrentRequest}>
+              <RefreshCw size={16} />
+              <span>Tentar novamente</span>
+            </button>
           </div>
         ) : displayList.length > 0 ? (
           <>
@@ -414,8 +472,9 @@ export default function App() {
             <Sparkles size={48} color="#ff3b5c" />
             <h3>Nenhum Pokémon Encontrado</h3>
             <p>
-              {searchError ||
-                "Tente buscar por outro nome, ID ou ajuste os filtros de tipo."}
+              {isSearchActive && activeSearch?.status === "not-found"
+                ? `Nenhum Pokémon encontrado com "${searchTerm}".`
+                : "Tente buscar por outro nome, ID ou ajuste os filtros de tipo."}
             </p>
             <button
               className="reset-filters-btn"
@@ -435,11 +494,19 @@ export default function App() {
       {/* Detail Modal Overlay */}
       {selectedPokemon && (
         <PokemonModal
-          pokemon={modalDetails || selectedPokemon}
-          isLoading={loadingModal}
+          key={selectedPokemon.id}
+          pokemon={modalResult?.status === "success"
+            ? { ...selectedPokemon, ...modalResult.details }
+            : selectedPokemon}
+          isLoading={modalResult === null}
+          hasDetailsError={modalResult?.status === "error"}
+          onRetryDetails={() => {
+            setModalResult(null);
+            setModalAttempt((attempt) => attempt + 1);
+          }}
           onClose={() => {
             setSelectedPokemon(null);
-            setModalDetails(null);
+            setModalResult(null);
           }}
           isFavorite={favorites.includes(selectedPokemon.id)}
           onToggleFavorite={toggleFavorite}

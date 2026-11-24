@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Volume2, Sparkles, Heart, Zap, Swords, Loader2 } from 'lucide-react';
 import { getTypeStyle } from '../data/pokemon';
 import type { Pokemon, PokemonDetails } from '../types/pokemon';
@@ -6,6 +6,8 @@ import type { Pokemon, PokemonDetails } from '../types/pokemon';
 interface PokemonModalProps {
   pokemon: (Pokemon & Partial<PokemonDetails>) | null;
   isLoading: boolean;
+  hasDetailsError: boolean;
+  onRetryDetails: () => void;
   onClose: () => void;
   isFavorite: boolean;
   onToggleFavorite: (id: number) => void;
@@ -18,13 +20,27 @@ interface StatRowProps {
   color: string;
 }
 
-export default function PokemonModal({ pokemon, isLoading, onClose, isFavorite, onToggleFavorite }: PokemonModalProps) {
+export default function PokemonModal({
+  pokemon,
+  isLoading,
+  hasDetailsError,
+  onRetryDetails,
+  onClose,
+  isFavorite,
+  onToggleFavorite,
+}: PokemonModalProps) {
+  const [cryFailed, setCryFailed] = useState(false);
   if (!pokemon) return null;
 
-  const playCry = () => {
-    if (pokemon.cries) {
-      const audio = new Audio(pokemon.cries);
-      audio.play().catch(() => {});
+  const playCry = async () => {
+    if (!pokemon.cries) return;
+
+    setCryFailed(false);
+    try {
+      await new Audio(pokemon.cries).play();
+    } catch (error) {
+      console.warn('Falha ao reproduzir o áudio do Pokémon.', error);
+      setCryFailed(true);
     }
   };
 
@@ -89,6 +105,9 @@ export default function PokemonModal({ pokemon, isLoading, onClose, isFavorite, 
                   </button>
                 )}
               </div>
+              {cryFailed && (
+                <p className="description-box" role="status">Falha ao reproduzir o áudio. Tente novamente.</p>
+              )}
 
               {/* Types */}
               <div className="types-container">
@@ -127,9 +146,18 @@ export default function PokemonModal({ pokemon, isLoading, onClose, isFavorite, 
               </div>
 
               {/* Description */}
-              <div className="description-box">
-                <p>{pokemon.description || "Descrição em carregamento..."}</p>
-              </div>
+              {hasDetailsError ? (
+                <div className="description-box">
+                  <p role="alert">Falha ao carregar os detalhes complementares.</p>
+                  <button type="button" className="reset-filters-btn" onClick={onRetryDetails}>
+                    Tentar novamente
+                  </button>
+                </div>
+              ) : (
+                <div className="description-box">
+                  <p>{pokemon.description || "Sem descrição disponível."}</p>
+                </div>
+              )}
 
               {/* Stats Bar */}
               {pokemon.stats && (

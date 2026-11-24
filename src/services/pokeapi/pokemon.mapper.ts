@@ -2,10 +2,11 @@ import type {
   AbilityResponse,
   EvolutionChainLink,
   EvolutionChainResponse,
-  PokemonListResponse,
+  PokemonIndexResponse,
+  PokemonPageResponse,
   PokemonResponse,
   PokemonSpeciesResponse,
-} from "../../types/pokeapi";
+} from "./pokemon.schemas";
 import type {
   PokemonAbility,
   PokemonDetails,
@@ -44,11 +45,11 @@ function normalizeDescription(text: string): string {
   return text.replace(/[\n\f]/g, " ");
 }
 
-export function mapPokemonIndex(data: PokemonListResponse): PokemonIndexEntry[] {
+export function mapPokemonIndex(data: PokemonIndexResponse): PokemonIndexEntry[] {
   return data.results.map(({ name }, index) => ({ name, id: index + 1 }));
 }
 
-export function mapPokemonPage(data: PokemonListResponse): PokemonPage {
+export function mapPokemonPage(data: PokemonPageResponse): PokemonPage {
   return { count: data.count, names: data.results.map(({ name }) => name) };
 }
 
