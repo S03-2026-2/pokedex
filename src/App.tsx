@@ -3,7 +3,7 @@ import { z } from "zod";
 import PokemonCard from "./components/PokemonCard";
 import PokemonModal from "./components/PokemonModal";
 import { TYPE_COLORS } from "./data/pokemon";
-import { PokeApiAdapter } from "./services/pokeapi/poke-api.adapter";
+import type { PokemonProvider } from "./providers/pokemon-provider";
 import type {
   PokemonDetails,
   PokemonIndexEntry,
@@ -25,7 +25,6 @@ const PAGE_SIZE = 30;
 const TOTAL_POKEMON_COUNT = 1025;
 const FAVORITES_KEY = "cyberdex_favs";
 const favoritesSchema = z.array(z.number().int().positive());
-const pokeApi = new PokeApiAdapter();
 const TYPE_FILTERS = [
   "ALL",
   ...(Object.keys(TYPE_COLORS) as (keyof typeof TYPE_COLORS)[]),
@@ -65,8 +64,14 @@ function readFavorites(): number[] {
   return [25, 6, 150];
 }
 
-async function loadPokemonBatch(names: string[], signal: AbortSignal): Promise<PokemonListResult> {
-  const results = await Promise.allSettled(names.map((name) => pokeApi.getPokemon(name, signal)));
+async function loadPokemonBatch(
+  pokemonProvider: PokemonProvider,
+  names: string[],
+  signal: AbortSignal,
+): Promise<PokemonListResult> {
+  const results = await Promise.allSettled(
+    names.map((name) => pokemonProvider.getPokemon(name, signal)),
+  );
   const pokemon: PokemonSummary[] = [];
   let hasRequestError = false;
 
@@ -84,7 +89,11 @@ async function loadPokemonBatch(names: string[], signal: AbortSignal): Promise<P
     : { status: "success", pokemon };
 }
 
-export default function App() {
+interface AppProps {
+  pokemonProvider: PokemonProvider;
+}
+
+export default function App({ pokemonProvider }: AppProps) {
   const [indexResult, setIndexResult] = useState<PokemonIndexResult | null>(null);
   const [indexAttempt, setIndexAttempt] = useState(0);
   const [pageResult, setPageResult] = useState<PokemonListResult | null>(null);
@@ -131,7 +140,7 @@ export default function App() {
     setIndexResult(null);
     const fetchMasterIndex = async () => {
       try {
-        const entries = await pokeApi.getPokemonIndex(TOTAL_POKEMON_COUNT, signal);
+        const entries = await pokemonProvider.getPokemonIndex(TOTAL_POKEMON_COUNT, signal);
         if (!signal.aborted) setIndexResult({ status: "success", entries });
       } catch (error) {
         if (signal.aborted) return;
@@ -141,7 +150,7 @@ export default function App() {
     };
     void fetchMasterIndex();
     return () => controller.abort();
-  }, [indexAttempt]);
+  }, [indexAttempt, pokemonProvider]);
 
   // Fetch page of 30 Pokemon when page changes (and not searching)
   useEffect(() => {
@@ -153,11 +162,11 @@ export default function App() {
     const fetchPage = async () => {
       const offset = (currentPage - 1) * PAGE_SIZE;
       try {
-        const page = await pokeApi.getPokemonPage(offset, PAGE_SIZE, signal);
+        const page = await pokemonProvider.getPokemonPage(offset, PAGE_SIZE, signal);
         if (signal.aborted) return;
         setTotalCount(page.count);
 
-        const result = await loadPokemonBatch(page.names, signal);
+        const result = await loadPokemonBatch(pokemonProvider, page.names, signal);
         if (!signal.aborted) setPageResult(result);
       } catch (error) {
         if (signal.aborted) return;
@@ -168,7 +177,7 @@ export default function App() {
 
     void fetchPage();
     return () => controller.abort();
-  }, [currentPage, isSearchActive, requestAttempt]);
+  }, [currentPage, isSearchActive, requestAttempt, pokemonProvider]);
 
   // Robust Search Implementation (Substring & Prefix Matching across all 1025 Pokemon)
   useEffect(() => {
@@ -188,10 +197,14 @@ export default function App() {
       try {
         let result: SearchResult;
         if (matches.length > 0) {
-          result = await loadPokemonBatch(matches.map(({ name }) => name), signal);
+          result = await loadPokemonBatch(
+            pokemonProvider,
+            matches.map(({ name }) => name),
+            signal,
+          );
         } else {
           // Fallback direct API try in case of special forms
-          const directResult = await pokeApi.getPokemon(term, signal);
+          const directResult = await pokemonProvider.getPokemon(term, signal);
           if (directResult) {
             result = { status: "success", pokemon: [directResult] };
           } else {
@@ -211,7 +224,7 @@ export default function App() {
       clearTimeout(timer);
       controller.abort();
     };
-  }, [term, searchTerm, indexResult, requestAttempt]);
+  }, [term, searchTerm, indexResult, requestAttempt, pokemonProvider]);
 
   useEffect(() => {
     if (!selectedPokemon) return;
@@ -220,7 +233,7 @@ export default function App() {
     const { signal } = controller;
     const fetchModalDetails = async () => {
       try {
-        const details = await pokeApi.getPokemonDetails(selectedPokemon, signal);
+        const details = await pokemonProvider.getPokemonDetails(selectedPokemon, signal);
         if (!signal.aborted) setModalResult({ status: "success", details });
       } catch (error) {
         if (signal.aborted) return;
@@ -230,7 +243,7 @@ export default function App() {
     };
     void fetchModalDetails();
     return () => controller.abort();
-  }, [selectedPokemon, modalAttempt]);
+  }, [selectedPokemon, modalAttempt, pokemonProvider]);
 
   const handleOpenModal = (pokemon: PokemonSummary) => {
     setModalResult(null);

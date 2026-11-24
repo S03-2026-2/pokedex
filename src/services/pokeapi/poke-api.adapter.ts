@@ -1,4 +1,5 @@
 import type { ZodType } from "zod";
+import type { PokemonProvider } from "../../providers/pokemon-provider";
 import {
   abilityResponseSchema,
   evolutionChainResponseSchema,
@@ -34,7 +35,7 @@ class PokeApiHttpError extends Error {
   }
 }
 
-export class PokeApiAdapter {
+export class PokeApiAdapter implements PokemonProvider {
   constructor(private readonly fetcher: typeof fetch = (...args) => fetch(...args)) {}
 
   async getPokemonIndex(limit: number, signal?: AbortSignal): Promise<PokemonIndexEntry[]> {
