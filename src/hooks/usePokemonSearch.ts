@@ -1,53 +1,33 @@
 import { useEffect, useState } from "react";
 import type { PokemonProvider } from "../providers/pokemon-provider";
-import type { PokemonIndexEntry } from "../types/pokemon";
-import { DEFAULT_POKEMON_COUNT, loadPokemonBatch } from "./pokemon-batch";
+import { loadPokemonBatch } from "./pokemon-batch";
 import type { PokemonListResult } from "./pokemon-batch";
+import { matchesPokemonSearch, SEARCH_DELAY_MS, type PokemonIndexResult } from "./usePokemonIndex";
 
-const SEARCH_DELAY_MS = 350;
 const SEARCH_RESULT_LIMIT = 30;
 
 type SearchResult = PokemonListResult | { status: "not-found" };
-type PokemonIndexResult =
-  | { status: "success"; entries: PokemonIndexEntry[] }
-  | { status: "error" };
 
-export function usePokemonSearch(pokemonProvider: PokemonProvider) {
-  const [indexResult, setIndexResult] = useState<PokemonIndexResult | null>(null);
-  const [indexAttempt, setIndexAttempt] = useState(0);
+export function usePokemonSearch(
+  pokemonProvider: PokemonProvider,
+  indexResult: PokemonIndexResult | null,
+  enabled: boolean,
+) {
   const [requestAttempt, setRequestAttempt] = useState(0);
   const [searchTerm, setSearchTerm] = useState("");
   const [searchResult, setSearchResult] = useState<{ term: string; result: SearchResult } | null>(null);
   const term = searchTerm.trim().toLowerCase();
 
   useEffect(() => {
-    const controller = new AbortController();
-    const { signal } = controller;
-    setIndexResult(null);
-    const fetchMasterIndex = async () => {
-      try {
-        const entries = await pokemonProvider.getPokemonIndex(DEFAULT_POKEMON_COUNT, signal);
-        if (!signal.aborted) setIndexResult({ status: "success", entries });
-      } catch (error) {
-        if (signal.aborted) return;
-        console.warn("Falha ao carregar o índice de busca.", error);
-        setIndexResult({ status: "error" });
-      }
-    };
-    void fetchMasterIndex();
-    return () => controller.abort();
-  }, [indexAttempt, pokemonProvider]);
-
-  useEffect(() => {
     setSearchResult(null);
-    if (!term) return;
+    if (!enabled || !term) return;
 
     const controller = new AbortController();
     const { signal } = controller;
     const timer = setTimeout(async () => {
       const entries = indexResult?.status === "success" ? indexResult.entries : [];
       const matches = entries
-        .filter((entry) => entry.name.toLowerCase().includes(term) || String(entry.id) === term)
+        .filter((entry) => matchesPokemonSearch(entry, term))
         .slice(0, SEARCH_RESULT_LIMIT);
 
       try {
@@ -80,18 +60,14 @@ export function usePokemonSearch(pokemonProvider: PokemonProvider) {
       clearTimeout(timer);
       controller.abort();
     };
-  }, [term, searchTerm, indexResult, requestAttempt, pokemonProvider]);
-
-  const retry = () => {
-    if (indexResult?.status === "error") setIndexAttempt((attempt) => attempt + 1);
-    setRequestAttempt((attempt) => attempt + 1);
-  };
+  }, [enabled, term, searchTerm, indexResult, requestAttempt, pokemonProvider]);
 
   return {
     searchTerm,
+    term,
     setSearchTerm,
     isActive: term.length > 0,
     result: searchResult?.term === searchTerm ? searchResult.result : null,
-    retry,
+    retry: () => setRequestAttempt((attempt) => attempt + 1),
   };
 }

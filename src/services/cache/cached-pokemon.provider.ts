@@ -22,6 +22,7 @@ export class CachedPokemonProvider implements PokemonProvider {
   private readonly index = new Map<number, CacheEntry<PokemonIndexEntry[]>>();
   private readonly pages = new Map<string, CacheEntry<PokemonPage>>();
   private readonly pokemon = new Map<string, CacheEntry<PokemonSummary | null>>();
+  private readonly types = new Map<string, CacheEntry<string[]>>();
   private readonly details = new Map<number, CacheEntry<PokemonDetails>>();
   private requestVersion = 0;
 
@@ -42,6 +43,12 @@ export class CachedPokemonProvider implements PokemonProvider {
   getPokemonPage(offset: number, limit: number, signal?: AbortSignal): Promise<PokemonPage> {
     return this.getOrLoad(this.pages, `${offset}:${limit}`, (sharedSignal) =>
       this.provider.getPokemonPage(offset, limit, sharedSignal), signal);
+  }
+
+  getPokemonByType(type: string, signal?: AbortSignal): Promise<string[]> {
+    const key = type.trim().toLowerCase();
+    return this.getOrLoad(this.types, key, (sharedSignal) =>
+      this.provider.getPokemonByType(key, sharedSignal), signal);
   }
 
   getPokemon(idOrName: string | number, signal?: AbortSignal): Promise<PokemonSummary | null> {

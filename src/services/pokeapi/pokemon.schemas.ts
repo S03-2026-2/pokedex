@@ -16,6 +16,10 @@ export const pokemonPageResponseSchema = pokemonIndexResponseSchema.extend({
   count: z.number().int().nonnegative(),
 });
 
+export const pokemonTypeResponseSchema = z.object({
+  pokemon: z.array(z.object({ pokemon: resourceName })),
+});
+
 export const pokemonResponseSchema = z.object({
   id: z.number().int().positive(),
   name: z.string().min(1),
@@ -65,6 +69,7 @@ export const evolutionChainResponseSchema = z.object({ chain: evolutionLink });
 
 export type PokemonIndexResponse = z.infer<typeof pokemonIndexResponseSchema>;
 export type PokemonPageResponse = z.infer<typeof pokemonPageResponseSchema>;
+export type PokemonTypeResponse = z.infer<typeof pokemonTypeResponseSchema>;
 export type PokemonResponse = z.infer<typeof pokemonResponseSchema>;
 export type PokemonSpeciesResponse = z.infer<typeof pokemonSpeciesResponseSchema>;
 export type AbilityResponse = z.infer<typeof abilityResponseSchema>;

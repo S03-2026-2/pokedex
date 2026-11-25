@@ -13,6 +13,8 @@ export function normalizePokemonLookup(idOrName: string | number): string | numb
 }
 
 export interface PokemonProvider {
+  getPokemonByType(type: string, signal?: AbortSignal): Promise<string[]>;
+
   getPokemonIndex(
     limit: number,
     signal?: AbortSignal,

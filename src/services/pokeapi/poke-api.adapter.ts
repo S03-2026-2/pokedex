@@ -8,6 +8,7 @@ import {
   pokemonPageResponseSchema,
   pokemonResponseSchema,
   pokemonSpeciesResponseSchema,
+  pokemonTypeResponseSchema,
 } from "./pokemon.schemas";
 import type {
   PokemonAbility,
@@ -25,9 +26,11 @@ import {
   mapPokemonPage,
   mapPokemonSpecies,
   mapPokemonSummary,
+  mapPokemonTypeNames,
 } from "./pokemon.mapper";
 
-const POKEMON_URL = "https://pokeapi.co/api/v2/pokemon";
+const POKEAPI_URL = "https://pokeapi.co/api/v2";
+const POKEMON_URL = `${POKEAPI_URL}/pokemon`;
 
 class PokeApiHttpError extends Error {
   constructor(readonly status: number, url: string) {
@@ -38,6 +41,15 @@ class PokeApiHttpError extends Error {
 
 export class PokeApiAdapter implements PokemonProvider {
   constructor(private readonly fetcher: typeof fetch = (...args) => fetch(...args)) {}
+
+  async getPokemonByType(type: string, signal?: AbortSignal): Promise<string[]> {
+    const data = await this.fetchJson(
+      `${POKEAPI_URL}/type/${encodeURIComponent(type.trim().toLowerCase())}`,
+      pokemonTypeResponseSchema,
+      signal,
+    );
+    return mapPokemonTypeNames(data);
+  }
 
   async getPokemonIndex(limit: number, signal?: AbortSignal): Promise<PokemonIndexEntry[]> {
     const data = await this.fetchJson(

@@ -6,6 +6,7 @@ import type {
   PokemonPageResponse,
   PokemonResponse,
   PokemonSpeciesResponse,
+  PokemonTypeResponse,
 } from "./pokemon.schemas";
 import type {
   PokemonAbility,
@@ -51,6 +52,10 @@ export function mapPokemonIndex(data: PokemonIndexResponse): PokemonIndexEntry[]
 
 export function mapPokemonPage(data: PokemonPageResponse): PokemonPage {
   return { count: data.count, names: data.results.map(({ name }) => name) };
+}
+
+export function mapPokemonTypeNames(data: PokemonTypeResponse): string[] {
+  return data.pokemon.map(({ pokemon }) => pokemon.name);
 }
 
 export function mapPokemonSummary(data: PokemonResponse): PokemonSummary {

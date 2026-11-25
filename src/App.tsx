@@ -4,7 +4,8 @@ import PokemonModal from "./components/PokemonModal";
 import { TYPE_COLORS } from "./data/pokemon";
 import { useFavorites } from "./hooks/useFavorites";
 import { usePokemonDetails } from "./hooks/usePokemonDetails";
-import { usePokemonList } from "./hooks/usePokemonList";
+import { usePokemonIndex } from "./hooks/usePokemonIndex";
+import { usePokemonList, type PokemonListFilters } from "./hooks/usePokemonList";
 import { usePokemonSearch } from "./hooks/usePokemonSearch";
 import type { FavoritesStorage } from "./providers/favorites-storage";
 import type { PokemonProvider } from "./providers/pokemon-provider";
@@ -28,8 +29,8 @@ const SORT_OPTIONS = [
   { value: "id-asc", label: "Menor ID (#001)" },
   { value: "id-desc", label: "Maior ID" },
   { value: "name-asc", label: "Nome (A-Z)" },
-  { value: "hp-desc", label: "Maior HP" },
-  { value: "attack-desc", label: "Maior Ataque" },
+  { value: "hp-desc", label: "Maior HP (nesta página)" },
+  { value: "attack-desc", label: "Maior Ataque (nesta página)" },
 ] as const;
 
 type TypeFilter = (typeof TYPE_FILTERS)[number];
@@ -41,8 +42,10 @@ interface AppProps {
 }
 
 export default function App({ pokemonProvider, favoritesStorage }: AppProps) {
-  const search = usePokemonSearch(pokemonProvider);
-  const list = usePokemonList(pokemonProvider, !search.isActive);
+  const [selectedType, setSelectedType] = useState<TypeFilter>("ALL");
+  const [favoritesOnly, setFavoritesOnly] = useState(false);
+  const [sortBy, setSortBy] = useState<SortOption>("id-asc");
+
   const details = usePokemonDetails(pokemonProvider);
   const {
     count: favoriteCount,
@@ -51,46 +54,53 @@ export default function App({ pokemonProvider, favoritesStorage }: AppProps) {
     storageFailed: favoritesStorageFailed,
   } = useFavorites(favoritesStorage);
 
-  const { searchTerm, setSearchTerm, isActive: isSearchActive, result: activeSearch } = search;
+  const pokemonType = selectedType === "ALL" ? null : selectedType.toLowerCase();
+  const favoriteFilter = favoritesOnly ? isFavorite : null;
+  const filtersActive = pokemonType !== null || favoriteFilter !== null;
+  const index = usePokemonIndex(pokemonProvider);
+  const search = usePokemonSearch(pokemonProvider, index.result, !filtersActive);
+  const { searchTerm, isActive: isSearchActive, result: activeSearch } = search;
+  const isGlobalSearch = isSearchActive && !filtersActive;
+  const filters = useMemo<PokemonListFilters | null>(
+    () => filtersActive ? {
+      indexResult: index.result,
+      type: pokemonType,
+      isFavorite: favoriteFilter,
+      term: search.term,
+    } : null,
+    [filtersActive, index.result, pokemonType, favoriteFilter, search.term],
+  );
+  const list = usePokemonList(pokemonProvider, !isGlobalSearch, filters);
   const { currentPage, totalCount, totalPages, firstItem, lastItem } = list;
   const selectedPokemon = details.pokemon;
-  const [selectedType, setSelectedType] = useState<TypeFilter>("ALL");
-  const [favoritesOnly, setFavoritesOnly] = useState(false);
-  const [sortBy, setSortBy] = useState<SortOption>("id-asc");
 
-  const activeResult = isSearchActive ? activeSearch : list.result;
+  const activeResult = isGlobalSearch ? activeSearch : list.result;
   const requestFailed = activeResult?.status === "error";
 
-  // Display List Determination (Paginated vs Searched)
+  const updateSearchTerm = (term: string) => {
+    search.setSearchTerm(term);
+    if (filtersActive) list.resetPage();
+  };
+
+  const retry = () => {
+    if (filtersActive || isGlobalSearch) index.retry();
+    if (isGlobalSearch) search.retry();
+    else list.retry();
+  };
+
   const displayList = useMemo(() => {
     const source = activeResult?.status === "success" ? activeResult.pokemon : [];
 
-    return source
-      .filter((pokemon) => {
-        const matchesType =
-          selectedType === "ALL" ||
-          pokemon.types
-            .map((t) => t.toUpperCase())
-            .includes(selectedType.toUpperCase());
-        const matchesFav = !favoritesOnly || isFavorite(pokemon.id);
-        return matchesType && matchesFav;
-      })
-      .sort((a, b) => {
-        if (sortBy === "id-asc") return a.id - b.id;
-        if (sortBy === "id-desc") return b.id - a.id;
-        if (sortBy === "name-asc") return a.name.localeCompare(b.name);
-        if (sortBy === "hp-desc") return (b.stats.hp || 0) - (a.stats.hp || 0);
-        if (sortBy === "attack-desc")
-          return (b.stats.attack || 0) - (a.stats.attack || 0);
-        return 0;
-      });
-  }, [
-    activeResult,
-    selectedType,
-    favoritesOnly,
-    isFavorite,
-    sortBy,
-  ]);
+    return [...source].sort((a, b) => {
+      if (sortBy === "id-asc") return a.id - b.id;
+      if (sortBy === "id-desc") return b.id - a.id;
+      if (sortBy === "name-asc") return a.name.localeCompare(b.name);
+      if (sortBy === "hp-desc") return (b.stats.hp || 0) - (a.stats.hp || 0);
+      if (sortBy === "attack-desc")
+        return (b.stats.attack || 0) - (a.stats.attack || 0);
+      return 0;
+    });
+  }, [activeResult, sortBy]);
 
   return (
     <div className="app-container">
@@ -114,7 +124,7 @@ export default function App({ pokemonProvider, favoritesStorage }: AppProps) {
 
         <div className="header-stats">
           <div className="stat-pill">
-            <span className="stat-pill-num">{totalCount}</span>
+            <span className="stat-pill-num">{list.catalogTotalCount}</span>
             <span className="stat-pill-label">Total PokéAPI</span>
           </div>
           <div className="stat-pill accent">
@@ -138,10 +148,10 @@ export default function App({ pokemonProvider, favoritesStorage }: AppProps) {
               type="text"
               placeholder="Pesquisar por trecho do nome ou ID (ex: char, pika, 150)..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => updateSearchTerm(e.target.value)}
               className="search-input"
             />
-            {isSearchActive && activeSearch === null ? (
+            {isSearchActive && activeResult === null ? (
               <Loader2
                 className="clear-search-btn spin-icon"
                 size={18}
@@ -150,7 +160,7 @@ export default function App({ pokemonProvider, favoritesStorage }: AppProps) {
             ) : searchTerm ? (
               <button
                 className="clear-search-btn"
-                onClick={() => setSearchTerm("")}
+                onClick={() => updateSearchTerm("")}
               >
                 ×
               </button>
@@ -163,7 +173,11 @@ export default function App({ pokemonProvider, favoritesStorage }: AppProps) {
               <button
                 key={type}
                 className={`type-filter-chip ${selectedType === type ? "active" : ""}`}
-                onClick={() => setSelectedType(type)}
+                onClick={() => {
+                  if (type === selectedType) return;
+                  setSelectedType(type);
+                  list.resetPage();
+                }}
               >
                 {type === "ALL" ? "Todos os Tipos" : type}
               </button>
@@ -174,7 +188,10 @@ export default function App({ pokemonProvider, favoritesStorage }: AppProps) {
           <div className="secondary-controls">
             <button
               className={`toggle-fav-btn ${favoritesOnly ? "active" : ""}`}
-              onClick={() => setFavoritesOnly(!favoritesOnly)}
+              onClick={() => {
+                setFavoritesOnly((previous) => !previous);
+                list.resetPage();
+              }}
             >
               <Heart size={16} fill={favoritesOnly ? "#ff3b5c" : "none"} />
               <span>Somente Favoritos</span>
@@ -217,7 +234,7 @@ export default function App({ pokemonProvider, favoritesStorage }: AppProps) {
           <div className="empty-state glass-panel" role="alert">
             <h3>{isSearchActive ? "Falha na busca" : "Falha ao carregar a página"}</h3>
             <p>Tente novamente para consultar a PokéAPI.</p>
-            <button type="button" className="reset-filters-btn" onClick={isSearchActive ? search.retry : list.retry}>
+            <button type="button" className="reset-filters-btn" onClick={retry}>
               <RefreshCw size={16} />
               <span>Tentar novamente</span>
             </button>
@@ -236,8 +253,7 @@ export default function App({ pokemonProvider, favoritesStorage }: AppProps) {
               ))}
             </div>
 
-            {/* Pagination Component (Only visible when not searching) */}
-            {!searchTerm && (
+            {(!isSearchActive || filtersActive) && (
               <div className="pagination-bar glass-panel">
                 <button
                   className="pagination-btn"
@@ -275,16 +291,17 @@ export default function App({ pokemonProvider, favoritesStorage }: AppProps) {
             <Sparkles size={48} color="#ff3b5c" />
             <h3>Nenhum Pokémon Encontrado</h3>
             <p>
-              {isSearchActive && activeSearch?.status === "not-found"
+              {isGlobalSearch && activeSearch?.status === "not-found"
                 ? `Nenhum Pokémon encontrado com "${searchTerm}".`
                 : "Tente buscar por outro nome, ID ou ajuste os filtros de tipo."}
             </p>
             <button
               className="reset-filters-btn"
               onClick={() => {
-                setSearchTerm("");
+                search.setSearchTerm("");
                 setSelectedType("ALL");
                 setFavoritesOnly(false);
+                if (filtersActive) list.resetPage();
               }}
             >
               <RefreshCw size={16} />
