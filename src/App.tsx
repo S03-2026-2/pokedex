@@ -1,10 +1,11 @@
 import { useMemo, useState } from "react";
-import PokemonFilters, { type PokemonTypeFilter } from "./components/PokemonFilters";
+import "./App.css";
 import PokemonHeader from "./components/PokemonHeader";
+import PokemonSearch from "./components/PokemonSearch";
+import PokemonFilters, { type PokemonTypeFilter } from "./components/PokemonFilters";
+import PokemonResults from "./components/PokemonResults";
 import PokemonModal from "./components/PokemonModal";
 import PokemonPagination from "./components/PokemonPagination";
-import PokemonResults from "./components/PokemonResults";
-import PokemonSearch from "./components/PokemonSearch";
 import { useFavorites } from "./hooks/useFavorites";
 import { usePokemonDetails } from "./hooks/usePokemonDetails";
 import { usePokemonIndex } from "./hooks/usePokemonIndex";
@@ -13,7 +14,6 @@ import { usePokemonSearch } from "./hooks/usePokemonSearch";
 import type { FavoritesStorage } from "./providers/favorites-storage";
 import type { PokemonProvider } from "./providers/pokemon-provider";
 import { sortPokemon, type PokemonSortOrder } from "./utils/pokemon-sort";
-import "./App.css";
 
 interface AppProps {
   pokemonProvider: PokemonProvider;

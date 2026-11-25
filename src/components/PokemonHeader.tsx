@@ -1,3 +1,4 @@
+import "./PokemonHeader.css";
 import { Heart } from "lucide-react";
 
 interface PokemonHeaderProps {

@@ -1,3 +1,4 @@
+import './PokemonCard.css';
 import { Heart, Eye } from 'lucide-react';
 import { getTypeStyle } from '../data/pokemon';
 import type { PokemonSummary } from '../types/pokemon';

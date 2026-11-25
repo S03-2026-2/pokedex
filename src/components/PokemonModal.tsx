@@ -1,3 +1,4 @@
+import './PokemonModal.css';
 import React, { useState } from 'react';
 import { Volume2, Sparkles, Heart, Zap, Swords, Loader2 } from 'lucide-react';
 import { getTypeStyle } from '../data/pokemon';

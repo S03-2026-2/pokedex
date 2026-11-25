@@ -1,3 +1,4 @@
+import "./PokemonResults.css";
 import type { ReactNode } from "react";
 import { Loader2, RefreshCw, Sparkles } from "lucide-react";
 import type { PokemonSummary } from "../types/pokemon";

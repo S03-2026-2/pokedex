@@ -1,3 +1,4 @@
+import "./PokemonFilters.css";
 import { Heart, SlidersHorizontal } from "lucide-react";
 import { TYPE_COLORS } from "../data/pokemon";
 import { POKEMON_SORT_OPTIONS, type PokemonSortOrder } from "../utils/pokemon-sort";

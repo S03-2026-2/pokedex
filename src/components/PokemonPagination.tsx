@@ -1,3 +1,4 @@
+import "./PokemonPagination.css";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
 interface PokemonPaginationProps {

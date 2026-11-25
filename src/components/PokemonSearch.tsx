@@ -1,3 +1,4 @@
+import "./PokemonSearch.css";
 import { Loader2, Search } from "lucide-react";
 
 interface PokemonSearchProps {
