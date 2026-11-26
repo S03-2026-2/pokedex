@@ -9,7 +9,7 @@ import { CollectionModule } from './modules/collection.module';
       isGlobal: true,
     }),
     DatabaseModule,
-    CollectionModule,
+    CollectionModule.register(),
   ],
   controllers: [],
   providers: [],

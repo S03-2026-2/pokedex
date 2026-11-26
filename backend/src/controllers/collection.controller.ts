@@ -12,7 +12,7 @@ export class CollectionController {
     private readonly collectionReader: ICollectionReader,
   ) {}
 
-  @Get('/playerId')
+  @Get(':playerId')
   async getKnownPokemon(
     @Param('playerId', ParseIntPipe) playerId: number,
   ): Promise<CollectionResponseDto> {
