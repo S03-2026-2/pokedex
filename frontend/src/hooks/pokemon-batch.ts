@@ -1,8 +1,6 @@
 import type { PokemonProvider } from "../providers/pokemon-provider";
 import type { CatalogPokemon, PokemonIndexEntry } from "../types/pokemon";
 
-export const DEFAULT_POKEMON_COUNT = 1025;
-
 export type PokemonListResult =
   | { status: "success"; pokemon: CatalogPokemon[] }
   | { status: "error" };

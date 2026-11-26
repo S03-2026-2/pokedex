@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import "./App.css";
+import DiscoveryProgress from "./components/DiscoveryProgress";
 import PokemonHeader from "./components/PokemonHeader";
 import PokemonSearch from "./components/PokemonSearch";
 import PokemonFilters, { type PokemonTypeFilter } from "./components/PokemonFilters";
@@ -38,6 +39,11 @@ export default function App({ collectionProvider, pokemonProvider, favoritesStor
   const filtersActive = pokemonType !== null || favoriteFilter !== null;
 
   const index = usePokemonIndex(pokemonProvider);
+  const catalogEntries = index.result?.status === "success" ? index.result.entries : null;
+  const totalPokemon = catalogEntries?.length ?? null;
+  const totalKnown = catalogEntries && collection.collection
+    ? catalogEntries.filter(({ id }) => collection.isKnown(id)).length
+    : null;
   const search = usePokemonSearch(pokemonProvider, index.result, !!collection.collection && !filtersActive, collection.isKnown);
   const { searchTerm, isActive: isSearchActive } = search;
   const isGlobalSearch = isSearchActive && !filtersActive;
@@ -89,10 +95,25 @@ export default function App({ collectionProvider, pokemonProvider, favoritesStor
 
   return (
     <div className="app-container">
-      <PokemonHeader totalCount={list.catalogTotalCount} favoriteCount={collection.collection ? [...collection.knownPokemonIds].filter(favorites.isFavorite).length : null} />
+      <PokemonHeader totalCount={totalPokemon} favoriteCount={collection.collection ? [...collection.knownPokemonIds].filter(favorites.isFavorite).length : null} />
+
+      {totalKnown !== null && totalPokemon !== null && (
+        <DiscoveryProgress totalKnown={totalKnown} totalPokemon={totalPokemon} />
+      )}
 
       <main className="pokedex-main">
         <section className="controls-panel glass-panel">
+          {collection.collection && index.result === null && (
+            <p role="status">Carregando o progresso da coleção...</p>
+          )}
+          {collection.collection && index.result?.status === "error" && (
+            <div>
+              <p role="status">Falha ao carregar o catálogo para calcular o progresso.</p>
+              <button type="button" className="reset-filters-btn" onClick={index.retry}>
+                Tentar novamente
+              </button>
+            </div>
+          )}
           {favorites.storageFailed && (
             <p role="status">Os favoritos serão mantidos apenas enquanto a Pokédex estiver aberta.</p>
           )}

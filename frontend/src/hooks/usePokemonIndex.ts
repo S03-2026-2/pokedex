@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import type { PokemonProvider } from "../providers/pokemon-provider";
 import type { PokemonIndexEntry } from "../types/pokemon";
-import { DEFAULT_POKEMON_COUNT } from "./pokemon-batch";
 
 export const SEARCH_DELAY_MS = 350;
 
@@ -23,7 +22,15 @@ export function usePokemonIndex(pokemonProvider: PokemonProvider) {
     setResult(null);
     const fetchIndex = async () => {
       try {
-        const entries = await pokemonProvider.getPokemonIndex(DEFAULT_POKEMON_COUNT, signal);
+        const firstPage = await pokemonProvider.getPokemonPage(0, 1, signal);
+        if (signal.aborted) return;
+
+        const entries = firstPage.count > firstPage.entries.length
+          ? await pokemonProvider.getPokemonIndex(firstPage.count, signal)
+          : firstPage.entries;
+        if (entries.length !== firstPage.count) {
+          throw new Error("The Pokémon catalog index is incomplete.");
+        }
         if (!signal.aborted) setResult({ status: "success", entries });
       } catch (error) {
         if (signal.aborted) return;
