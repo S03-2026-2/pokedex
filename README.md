@@ -2,6 +2,19 @@
 
 Projeto desenvolvido para a disciplina de Arquitetura e Desenho de Software (S203) do Instituto Nacional de Telecomunicações (Inatel).
 
+## Navegação
+
+- [Sobre o projeto](#1-sobre-o-projeto)
+- [Arquitetura de software](#2-arquitetura-de-software)
+- [Modelagem UML](#3-modelagem-uml)
+- [Princípios SOLID](#4-princípios-solid)
+- [Design Patterns](#5-design-patterns)
+  - [Adapter](#adapter)
+  - [Decorator no cache da PokéAPI](#decorator)
+  - [Observer no recebimento de cartas](#observer)
+- [Tecnologias utilizadas](#6-tecnologias-utilizadas)
+- [Escopo e limitações](#7-escopo-e-limitações)
+
 ## 1. Sobre o projeto
 
 A Pokédex é a aplicação responsável por gerenciar o histórico de Pokémon conhecidos por cada jogador no sistema de cartas Pokémon. Seu objetivo é permitir que o jogador acompanhe suas descobertas e o progresso de sua coleção.
@@ -105,7 +118,7 @@ A interface `ICardEventSource` permite que o consumidor dependa de uma abstraç�
 
 O diagrama representa as interações do jogador e dos sistemas externos com a Pokédex, incluindo a consulta da coleção, o acompanhamento do progresso, a visualização de detalhes e o registro de novas descobertas.
 
-[Diagrama de casos de uso (Draw.io)](use_case_pokedex_v1.drawio)
+[Diagrama de casos de uso em PDF](docs/use_case_pokedex_v1.pdf) · [Arquivo Draw.io](docs/use_case_pokedex_v1.drawio)
 
 Os casos de uso que dependem das demais aplicações representam a integração planejada. A autenticação, a auditoria administrativa e a comunicação real com as equipes externas não fazem parte da implementação atual.
 
@@ -113,7 +126,11 @@ Os casos de uso que dependem das demais aplicações representam a integração 
 
 O diagrama de classes apresenta a estrutura principal da solução, destacando os relacionamentos do domínio, os contratos de leitura e escrita, a persistência e os adapters do frontend.
 
-[Diagrama de classes fullstack (Draw.io)](uml_SOLID_pokedex_fullstack.drawio)
+| Versão | PDF | Arquivo editável |
+| --- | --- | --- |
+| Modelo inicial | [PDF](docs/uml_pokedex_v1.pdf) | [Draw.io](docs/uml_pokedex_v1.drawio) |
+| Modelo SOLID | [PDF](docs/uml_pokedex_v2%28SOLID%29.pdf) | [Draw.io](docs/uml_pokedex_v2%28SOLID%29.drawio) |
+| Solução integrada | [PDF](docs/uml_SOLID_final.pdf) | [Draw.io](docs/uml_SOLID_final.drawio) |
 
 O diagrama está em português e apresenta uma visão simplificada da estrutura do sistema, omitindo detalhes de implementação e componentes auxiliares.
 
@@ -182,6 +199,8 @@ Essa organização facilita a substituição das fontes de dados e a criação d
 
 O projeto utiliza três padrões de projeto GoF: Adapter, Decorator e Observer. Cada padrão atende a uma necessidade concreta da aplicação.
 
+<a name="adapter"></a>
+
 ### 5.1. Adapter — Padrão estrutural
 
 O Adapter permite que componentes com interfaces diferentes possam colaborar por meio de um contrato comum.
@@ -198,17 +217,36 @@ O `PokeApiAdapter` realiza requisições HTTP, valida respostas com Zod e utiliz
 
 Dessa forma, mudanças nos formatos externos podem ser tratadas dentro dos adapters, reduzindo seu impacto sobre a interface visual.
 
+<a name="decorator"></a>
+
 ### 5.2. Decorator — Padrão estrutural
 
 O Decorator permite acrescentar responsabilidades a um objeto por composição, mantendo a interface utilizada por seus consumidores.
 
 O `CachedPokemonProvider` implementa `PokemonProvider` e recebe outro objeto do mesmo contrato em seu construtor. Ele acrescenta cache às consultas, delegando ao provider encapsulado quando necessário.
 
-Na composição da aplicação, o provider com cache encapsula o adapter da PokéAPI, sem modificar o contrato utilizado pelos consumidores.
+O ponto de composição cria o adapter e o entrega ao Decorator. O `App` recebe esse objeto pelo contrato `PokemonProvider`. [Composição no frontend](frontend/src/main.tsx)
+
+```typescript
+const pokemonProvider = new CachedPokemonProvider(new PokeApiAdapter())
+```
+
+Em `getPokemonPage`, a combinação de `offset` e `limit` identifica a entrada. `getOrLoad` devolve um resultado válido do cache, reaproveita uma requisição em andamento ou chama o provider encapsulado. [Implementação do cache](frontend/src/services/cache/cached-pokemon.provider.ts)
+
+```typescript
+getPokemonPage(offset: number, limit: number, signal?: AbortSignal): Promise<PokemonPage> {
+  return this.getOrLoad(this.pages, `${offset}:${limit}`, (sharedSignal) =>
+    this.provider.getPokemonPage(offset, limit, sharedSignal), signal);
+}
+```
+
+Por exemplo, duas consultas a `getPokemonPage(0, 100)` compartilham a requisição se ela ainda estiver em andamento. Depois que ela termina com sucesso, a página pode ser reutilizada enquanto a entrada estiver válida.
 
 O cache é mantido em memória, com validade padrão de dez minutos, e permite o reaproveitamento de requisições em andamento para a mesma chave. Isso reduz consultas repetidas à PokéAPI sem exigir mudanças nos hooks ou no adapter original.
 
 A coleção do jogador não utiliza esse cache, pois suas descobertas podem mudar após novos eventos.
+
+<a name="observer"></a>
 
 ### 5.3. Observer — Padrão comportamental
 
@@ -221,7 +259,38 @@ Como a integração real entre equipes não foi realizada, o backend possui um m
 - `CardEventConsumer`: inscreve um handler na fonte durante a inicialização e encaminha os eventos recebidos ao contrato de escrita da coleção.
 - `SimulationController`: produz eventos de distribuição ou troca para fins de demonstração.
 
-Ao emitir um evento, a fonte simulada notifica os inscritos e aguarda seu processamento.
+O `CardEventConsumer` se inscreve em `onModuleInit` e cancela a inscrição em `onModuleDestroy`. A fonte guarda o callback e, ao receber um evento, aguarda cada inscrito em sequência. [Inscrição do consumidor](backend/src/events/consumers/card-event.consumer.ts) · [Fonte simulada](backend/src/events/sources/fake-card-event.source.ts)
+
+```typescript
+subscribe(handler: (event: CardReceivedEvent) => Promise<void>): () => void {
+  this.handlers.add(handler);
+  return () => {
+    this.handlers.delete(handler);
+  };
+}
+
+async emit(event: CardReceivedEvent): Promise<void> {
+  for (const handler of this.handlers) {
+    await handler(event);
+  }
+}
+```
+
+O `SimulationController` emite o mesmo tipo de evento tanto para distribuição quanto para troca. A origem acompanha o evento, e o consumidor chama `addCard` para cada ID recebido. [Emissão no controller](backend/src/events/simulation/simulation.controller.ts) · [Contrato do evento](backend/src/events/card-received.event.ts)
+
+```typescript
+private emitCards(
+  { playerId, pokemonIds }: SimulateCardsDto,
+  origin: DiscoveryOrigin,
+): Promise<void> {
+  return this.eventSource.emit({
+    playerId,
+    pokemonIds,
+    origin,
+    occurredAt: new Date(),
+  });
+}
+```
 
 A fonte de eventos não acessa diretamente o service nem o repository. O consumidor é responsável por encaminhar as notificações para as regras de negócio.
 
