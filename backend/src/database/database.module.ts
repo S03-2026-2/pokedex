@@ -7,16 +7,12 @@ import { TypeOrmModule } from '@nestjs/typeorm';
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: (config: ConfigService) => ({
-        type: 'postgres',
-        host: config.getOrThrow<string>('DATABASE_HOST'),
-        port: Number(config.getOrThrow<string>('DATABASE_PORT')),
-        username: config.getOrThrow<string>('DATABASE_USER'),
-        password: config.getOrThrow<string>('DATABASE_PASSWORD'),
-        database: config.getOrThrow<string>('DATABASE_NAME'),
-        autoLoadEntities: true,
-        synchronize: false,
-      }),
+      useFactory: (config: ConfigService) => {
+        // Load the CLI data source after Nest has loaded the environment.
+        const { getDatabaseOptions } =
+          require('./data-source') as typeof import('./data-source');
+        return { ...getDatabaseOptions(config), autoLoadEntities: true };
+      },
     }),
   ],
 })
