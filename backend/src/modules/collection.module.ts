@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { CollectionController } from '../controllers/collection.controller';
 import { CollectionRepository } from '../database/repositories/collection.repository';
 import { Collection } from '../entities/collection.entity';
 import { KnownCard } from '../entities/known-card.entity';
@@ -10,6 +11,7 @@ import { CollectionService } from '../services/collection.service';
 
 @Module({
   imports: [TypeOrmModule.forFeature([Collection, KnownCard])],
+  controllers: [CollectionController],
   providers: [
     { provide: COLLECTION_REPOSITORY, useClass: CollectionRepository },
     CollectionService,
