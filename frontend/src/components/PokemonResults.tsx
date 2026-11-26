@@ -1,12 +1,12 @@
 import "./PokemonResults.css";
 import type { ReactNode } from "react";
 import { Loader2, RefreshCw, Sparkles } from "lucide-react";
-import type { PokemonSummary } from "../types/pokemon";
+import type { CatalogPokemon, PokemonSummary } from "../types/pokemon";
 import PokemonCard from "./PokemonCard";
 
 interface PokemonResultsProps {
-  status: "loading" | "error" | "not-found" | "success";
-  pokemon: readonly PokemonSummary[];
+  status: "collection-loading" | "collection-error" | "loading" | "error" | "not-found" | "success";
+  pokemon: readonly CatalogPokemon[];
   searchTerm: string | null;
   currentPage: number;
   isFavorite: (id: number) => boolean;
@@ -29,12 +29,12 @@ export default function PokemonResults({
   onClearFilters,
   children,
 }: PokemonResultsProps) {
-  if (status === "loading") {
+  if (status === "loading" || status === "collection-loading") {
     return (
       <div className="empty-state glass-panel">
         <Loader2 size={48} color="#ff3b5c" className="spin-icon" />
         <h3>
-          {searchTerm !== null
+          {status === "collection-loading" ? "Carregando coleção..." : searchTerm !== null
             ? `Buscando "${searchTerm}" na PokéAPI...`
             : `Carregando Página ${currentPage}...`}
         </h3>
@@ -43,11 +43,11 @@ export default function PokemonResults({
     );
   }
 
-  if (status === "error") {
+  if (status === "error" || status === "collection-error") {
     return (
       <div className="empty-state glass-panel" role="alert">
-        <h3>{searchTerm !== null ? "Falha na busca" : "Falha ao carregar a página"}</h3>
-        <p>Tente novamente para consultar a PokéAPI.</p>
+        <h3>{status === "collection-error" ? "Falha ao carregar a coleção" : searchTerm !== null ? "Falha na busca" : "Falha ao carregar a página"}</h3>
+        <p>{status === "collection-error" ? "Tente novamente para consultar sua coleção." : "Tente novamente para consultar a PokéAPI."}</p>
         <button type="button" className="reset-filters-btn" onClick={onRetry}>
           <RefreshCw size={16} />
           <span>Tentar novamente</span>
@@ -80,7 +80,8 @@ export default function PokemonResults({
         {pokemon.map((entry) => (
           <PokemonCard
             key={entry.id}
-            pokemon={entry}
+            id={entry.id}
+            pokemon={entry.summary}
             isFavorite={isFavorite(entry.id)}
             onToggleFavorite={onToggleFavorite}
             onClick={onSelectPokemon}

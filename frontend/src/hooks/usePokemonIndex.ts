@@ -10,7 +10,7 @@ export type PokemonIndexResult =
   | { status: "error" };
 
 export function matchesPokemonSearch(entry: PokemonIndexEntry, term: string): boolean {
-  return entry.name.toLowerCase().includes(term) || String(entry.id) === term;
+  return /^\d+$/.test(term) ? String(entry.id) === term : entry.name.toLowerCase().includes(term);
 }
 
 export function usePokemonIndex(pokemonProvider: PokemonProvider) {

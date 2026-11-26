@@ -7,6 +7,12 @@ async function bootstrap() {
 
   const config = app.get(ConfigService);
 
+  const frontendOrigin = config.get<string>(
+    'FRONTEND_ORIGIN',
+    'http://localhost:5173',
+  );
+  app.enableCors({ origin: [frontendOrigin] });
+
   await app.listen(Number(config.getOrThrow('PORT')));
 }
 

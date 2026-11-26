@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import type { PokemonProvider } from "../providers/pokemon-provider";
+import { normalizePokemonLookup, type PokemonProvider } from "../providers/pokemon-provider";
 import { loadPokemonBatch } from "./pokemon-batch";
 import type { PokemonListResult } from "./pokemon-batch";
 import { matchesPokemonSearch, SEARCH_DELAY_MS, type PokemonIndexResult } from "./usePokemonIndex";
@@ -12,22 +12,24 @@ export function usePokemonSearch(
   pokemonProvider: PokemonProvider,
   indexResult: PokemonIndexResult | null,
   enabled: boolean,
+  isKnown: (id: number) => boolean,
 ) {
   const [requestAttempt, setRequestAttempt] = useState(0);
   const [searchTerm, setSearchTerm] = useState("");
-  const [searchResult, setSearchResult] = useState<{ term: string; result: SearchResult } | null>(null);
-  const term = searchTerm.trim().toLowerCase();
+  const [searchResult, setSearchResult] = useState<{ term: string; isKnown: typeof isKnown; result: SearchResult } | null>(null);
+  const term = String(normalizePokemonLookup(searchTerm));
 
   useEffect(() => {
     setSearchResult(null);
-    if (!enabled || !term) return;
+    if (!enabled || !term || !indexResult) return;
 
     const controller = new AbortController();
     const { signal } = controller;
     const timer = setTimeout(async () => {
       const entries = indexResult?.status === "success" ? indexResult.entries : [];
+      const numeric = /^\d+$/.test(term);
       const matches = entries
-        .filter((entry) => matchesPokemonSearch(entry, term))
+        .filter((entry) => (numeric || isKnown(entry.id)) && matchesPokemonSearch(entry, term))
         .slice(0, SEARCH_RESULT_LIMIT);
 
       try {
@@ -35,24 +37,27 @@ export function usePokemonSearch(
         if (matches.length > 0) {
           result = await loadPokemonBatch(
             pokemonProvider,
-            matches.map(({ name }) => name),
+            matches,
+            isKnown,
             signal,
           );
+        } else if (!numeric && entries.some((entry) => entry.name === term)) {
+          result = { status: "not-found" };
         } else {
           // Direct lookup also supports forms outside the search index.
           const directResult = await pokemonProvider.getPokemon(term, signal);
-          if (directResult) {
-            result = { status: "success", pokemon: [directResult] };
+          if (directResult && (numeric || isKnown(directResult.id))) {
+            const summary = isKnown(directResult.id) ? directResult : null;
+            result = { status: "success", pokemon: [{ id: directResult.id, summary }] };
           } else {
-            if (indexResult === null) return; // The index can still find a partial match.
             result = { status: indexResult.status === "error" ? "error" : "not-found" };
           }
         }
-        if (!signal.aborted) setSearchResult({ term: searchTerm, result });
+        if (!signal.aborted) setSearchResult({ term: searchTerm, isKnown, result });
       } catch (error) {
         if (signal.aborted) return;
         console.error("Falha ao pesquisar na PokéAPI.", error);
-        setSearchResult({ term: searchTerm, result: { status: "error" } });
+        setSearchResult({ term: searchTerm, isKnown, result: { status: "error" } });
       }
     }, SEARCH_DELAY_MS);
 
@@ -60,14 +65,14 @@ export function usePokemonSearch(
       clearTimeout(timer);
       controller.abort();
     };
-  }, [enabled, term, searchTerm, indexResult, requestAttempt, pokemonProvider]);
+  }, [enabled, term, searchTerm, indexResult, requestAttempt, pokemonProvider, isKnown]);
 
   return {
     searchTerm,
     term,
     setSearchTerm,
     isActive: term.length > 0,
-    result: searchResult?.term === searchTerm ? searchResult.result : null,
+    result: searchResult?.term === searchTerm && searchResult.isKnown === isKnown ? searchResult.result : null,
     retry: () => setRequestAttempt((attempt) => attempt + 1),
   };
 }

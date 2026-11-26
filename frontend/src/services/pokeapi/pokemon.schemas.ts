@@ -9,7 +9,9 @@ const flavorTextEntry = z.object({
 });
 
 export const pokemonIndexResponseSchema = z.object({
-  results: z.array(resourceName),
+  results: z.array(resourceName.extend({
+    url: resourceUrl.shape.url.refine((url) => /\/\d+\/?$/.test(url)),
+  })),
 });
 
 export const pokemonPageResponseSchema = pokemonIndexResponseSchema.extend({

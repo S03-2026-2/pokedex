@@ -3,6 +3,7 @@ import { normalizePokemonLookup, type PokemonProvider } from "../providers/pokem
 import { DEFAULT_POKEMON_COUNT, loadPokemonBatch } from "./pokemon-batch";
 import type { PokemonListResult } from "./pokemon-batch";
 import { matchesPokemonSearch, SEARCH_DELAY_MS, type PokemonIndexResult } from "./usePokemonIndex";
+import type { PokemonIndexEntry } from "../types/pokemon";
 
 const PAGE_SIZE = 30;
 
@@ -16,14 +17,15 @@ export interface PokemonListFilters {
 export function usePokemonList(
   pokemonProvider: PokemonProvider,
   enabled: boolean,
+  isKnown: (id: number) => boolean,
   filters: PokemonListFilters | null,
 ) {
   const [currentPage, setCurrentPage] = useState(1);
   const [catalogTotalCount, setCatalogTotalCount] = useState(DEFAULT_POKEMON_COUNT);
   const [requestAttempt, setRequestAttempt] = useState(0);
   const request = useMemo(
-    () => ({ pokemonProvider, enabled, filters, currentPage, requestAttempt }),
-    [pokemonProvider, enabled, filters, currentPage, requestAttempt],
+    () => ({ pokemonProvider, enabled, isKnown, filters, currentPage, requestAttempt }),
+    [pokemonProvider, enabled, isKnown, filters, currentPage, requestAttempt],
   );
   const [pageState, setPageState] = useState<{
     request: typeof request;
@@ -32,7 +34,7 @@ export function usePokemonList(
   } | null>(null);
 
   useEffect(() => {
-    const { pokemonProvider, enabled, filters, currentPage } = request;
+    const { pokemonProvider, enabled, isKnown, filters, currentPage } = request;
     if (!enabled || filters?.indexResult === null) return;
     if (filters?.indexResult?.status === "error") {
       setPageState({ request, result: { status: "error" }, totalCount: 0 });
@@ -44,7 +46,7 @@ export function usePokemonList(
     const fetchPage = async () => {
       const offset = (currentPage - 1) * PAGE_SIZE;
       try {
-        let names: string[];
+        let entries: PokemonIndexEntry[];
         let count: number;
         if (filters?.indexResult?.status === "success") {
           const typeNames = filters.type
@@ -55,6 +57,7 @@ export function usePokemonList(
           const matchingTypeNames = typeNames && new Set(typeNames.map((name) => name.toLowerCase()));
           const term = String(normalizePokemonLookup(filters.term));
           const matches = filters.indexResult.entries.filter((entry) =>
+            isKnown(entry.id) &&
             (!matchingTypeNames || matchingTypeNames.has(entry.name.toLowerCase())) &&
             (!filters.isFavorite || filters.isFavorite(entry.id)) &&
             (!term || matchesPokemonSearch(entry, term)),
@@ -65,15 +68,15 @@ export function usePokemonList(
             setCurrentPage(lastPage);
             return;
           }
-          names = matches.slice(offset, offset + PAGE_SIZE).map(({ name }) => name);
+          entries = matches.slice(offset, offset + PAGE_SIZE);
         } else {
           const page = await pokemonProvider.getPokemonPage(offset, PAGE_SIZE, signal);
           if (signal.aborted) return;
-          ({ names, count } = page);
+          ({ entries, count } = page);
           setCatalogTotalCount(count);
         }
 
-        const result = await loadPokemonBatch(pokemonProvider, names, signal);
+        const result = await loadPokemonBatch(pokemonProvider, entries, isKnown, signal);
         if (!signal.aborted) setPageState({ request, result, totalCount: count });
       } catch (error) {
         if (signal.aborted) return;

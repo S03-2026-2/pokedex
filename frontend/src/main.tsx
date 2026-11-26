@@ -17,7 +17,8 @@ if (!root) {
 const pokemonProvider = new CachedPokemonProvider(new PokeApiAdapter())
 const favoritesStorage = new LocalStorageFavoritesAdapter()
 const collectionApiUrl: string | undefined = import.meta.env.VITE_API_URL
-const collectionProvider = new CollectionApiAdapter(collectionApiUrl)
+const useDevProxy = import.meta.env.DEV && /^https?:\/\//i.test(collectionApiUrl ?? '')
+const collectionProvider = new CollectionApiAdapter(useDevProxy ? '/collection-api' : collectionApiUrl)
 
 ReactDOM.createRoot(root).render(
   <React.StrictMode>

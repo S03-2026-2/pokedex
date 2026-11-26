@@ -1,16 +1,28 @@
 import './PokemonCard.css';
-import { Heart, Eye } from 'lucide-react';
+import { Heart, Eye, LockKeyhole } from 'lucide-react';
 import { getTypeStyle } from '../data/pokemon';
 import type { PokemonSummary } from '../types/pokemon';
 
 interface PokemonCardProps {
-  pokemon: PokemonSummary;
+  id: number;
+  pokemon: PokemonSummary | null;
   isFavorite: boolean;
   onToggleFavorite: (id: number) => void;
   onClick: (pokemon: PokemonSummary) => void;
 }
 
-export default function PokemonCard({ pokemon, isFavorite, onToggleFavorite, onClick }: PokemonCardProps) {
+export default function PokemonCard({ id, pokemon, isFavorite, onToggleFavorite, onClick }: PokemonCardProps) {
+  const number = "#" + String(id).padStart(3, "0");
+  if (!pokemon) {
+    return (
+      <article className="pokemon-card locked-card glass-panel animate-fade" aria-label={"Pokémon bloqueado " + number}>
+        <span className="card-id">{number}</span>
+        <div className="card-image-wrapper" aria-hidden="true"><LockKeyhole size={48} /></div>
+        <h3 className="card-title">???</h3>
+      </article>
+    );
+  }
+
   const typeStyle = getTypeStyle(pokemon.types[0]);
 
   return (
@@ -26,7 +38,7 @@ export default function PokemonCard({ pokemon, isFavorite, onToggleFavorite, onC
 
       {/* Header with ID and Favorite button */}
       <div className="card-header">
-        <span className="card-id">#{String(pokemon.id).padStart(3, '0')}</span>
+        <span className="card-id">{number}</span>
         <button 
           className={`card-fav-btn ${isFavorite ? 'active' : ''}`}
           onClick={(e) => {

@@ -1,21 +1,26 @@
 import type { PokemonProvider } from "../providers/pokemon-provider";
-import type { PokemonSummary } from "../types/pokemon";
+import type { CatalogPokemon, PokemonIndexEntry } from "../types/pokemon";
 
 export const DEFAULT_POKEMON_COUNT = 1025;
 
 export type PokemonListResult =
-  | { status: "success"; pokemon: PokemonSummary[] }
+  | { status: "success"; pokemon: CatalogPokemon[] }
   | { status: "error" };
 
 export async function loadPokemonBatch(
   pokemonProvider: PokemonProvider,
-  names: string[],
+  entries: PokemonIndexEntry[],
+  isKnown: (id: number) => boolean,
   signal: AbortSignal,
 ): Promise<PokemonListResult> {
   const results = await Promise.allSettled(
-    names.map((name) => pokemonProvider.getPokemon(name, signal)),
+    entries.map(async ({ id, name }): Promise<CatalogPokemon | null> => {
+      if (!isKnown(id)) return { id, summary: null };
+      const summary = await pokemonProvider.getPokemon(name, signal);
+      return summary && { id, summary };
+    }),
   );
-  const pokemon: PokemonSummary[] = [];
+  const pokemon: CatalogPokemon[] = [];
   let hasRequestError = false;
 
   for (const result of results) {

@@ -30,7 +30,7 @@ export default function App({ collectionProvider, pokemonProvider, favoritesStor
   const [favoritesOnly, setFavoritesOnly] = useState(false);
   const [sortBy, setSortBy] = useState<PokemonSortOrder>("id-asc");
 
-  useCollection(collectionProvider, CURRENT_PLAYER_ID);
+  const collection = useCollection(collectionProvider, CURRENT_PLAYER_ID);
   const details = usePokemonDetails(pokemonProvider);
   const favorites = useFavorites(favoritesStorage);
   const pokemonType = selectedType === "ALL" ? null : selectedType.toLowerCase();
@@ -38,7 +38,7 @@ export default function App({ collectionProvider, pokemonProvider, favoritesStor
   const filtersActive = pokemonType !== null || favoriteFilter !== null;
 
   const index = usePokemonIndex(pokemonProvider);
-  const search = usePokemonSearch(pokemonProvider, index.result, !filtersActive);
+  const search = usePokemonSearch(pokemonProvider, index.result, !!collection.collection && !filtersActive, collection.isKnown);
   const { searchTerm, isActive: isSearchActive } = search;
   const isGlobalSearch = isSearchActive && !filtersActive;
   const filters = useMemo<PokemonListFilters | null>(
@@ -50,7 +50,7 @@ export default function App({ collectionProvider, pokemonProvider, favoritesStor
     } : null,
     [filtersActive, index.result, pokemonType, favoriteFilter, search.term],
   );
-  const list = usePokemonList(pokemonProvider, !isGlobalSearch, filters);
+  const list = usePokemonList(pokemonProvider, !!collection.collection && !isGlobalSearch, collection.isKnown, filters);
 
   const activeResult = isGlobalSearch ? search.result : list.result;
   const displayList = useMemo(
@@ -89,7 +89,7 @@ export default function App({ collectionProvider, pokemonProvider, favoritesStor
 
   return (
     <div className="app-container">
-      <PokemonHeader totalCount={list.catalogTotalCount} favoriteCount={favorites.count} />
+      <PokemonHeader totalCount={list.catalogTotalCount} favoriteCount={collection.collection ? [...collection.knownPokemonIds].filter(favorites.isFavorite).length : null} />
 
       <main className="pokedex-main">
         <section className="controls-panel glass-panel">
@@ -102,6 +102,8 @@ export default function App({ collectionProvider, pokemonProvider, favoritesStor
             onChange={updateSearchTerm}
           />
           <PokemonFilters
+            onRefreshCollection={collection.refetch}
+            collectionLoading={collection.isLoading}
             selectedType={selectedType}
             favoritesOnly={favoritesOnly}
             sortBy={sortBy}
@@ -112,14 +114,14 @@ export default function App({ collectionProvider, pokemonProvider, favoritesStor
         </section>
 
         <PokemonResults
-          status={activeResult?.status ?? "loading"}
+          status={collection.isLoading ? "collection-loading" : collection.error ? "collection-error" : activeResult?.status ?? "loading"}
           pokemon={displayList}
           searchTerm={isSearchActive ? searchTerm : null}
           currentPage={list.currentPage}
           isFavorite={favorites.isFavorite}
           onToggleFavorite={favorites.toggleFavorite}
           onSelectPokemon={details.open}
-          onRetry={retry}
+          onRetry={collection.error ? collection.refetch : retry}
           onClearFilters={clearFilters}
         >
           {(!isSearchActive || filtersActive) && (
@@ -136,7 +138,7 @@ export default function App({ collectionProvider, pokemonProvider, favoritesStor
         </PokemonResults>
       </main>
 
-      {selectedPokemon && (
+      {selectedPokemon && collection.isKnown(selectedPokemon.id) && (
         <PokemonModal
           key={selectedPokemon.id}
           pokemon={selectedPokemon}

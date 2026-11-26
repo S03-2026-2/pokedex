@@ -1,4 +1,4 @@
-import type { PokemonSummary } from "../types/pokemon";
+import type { CatalogPokemon } from "../types/pokemon";
 
 export const POKEMON_SORT_OPTIONS = [
   { value: "id-asc", label: "Menor ID (#001)" },
@@ -11,16 +11,16 @@ export const POKEMON_SORT_OPTIONS = [
 export type PokemonSortOrder = (typeof POKEMON_SORT_OPTIONS)[number]["value"];
 
 export function sortPokemon(
-  pokemon: readonly PokemonSummary[],
+  pokemon: readonly CatalogPokemon[],
   order: PokemonSortOrder,
-): PokemonSummary[] {
+): CatalogPokemon[] {
   return [...pokemon].sort((a, b) => {
-    switch (order) {
-      case "id-asc": return a.id - b.id;
-      case "id-desc": return b.id - a.id;
-      case "name-asc": return a.name.localeCompare(b.name);
-      case "hp-desc": return (b.stats.hp || 0) - (a.stats.hp || 0);
-      case "attack-desc": return (b.stats.attack || 0) - (a.stats.attack || 0);
-    }
+    if (order === "id-asc") return a.id - b.id;
+    if (order === "id-desc") return b.id - a.id;
+    if (a.summary === null) return b.summary === null ? a.id - b.id : 1;
+    if (b.summary === null) return -1;
+    if (order === "name-asc") return a.summary.name.localeCompare(b.summary.name);
+    const stat = order === "hp-desc" ? "hp" : "attack";
+    return (b.summary.stats[stat] ?? 0) - (a.summary.stats[stat] ?? 0);
   });
 }
