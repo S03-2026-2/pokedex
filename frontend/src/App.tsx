@@ -1,30 +1,37 @@
 import { useMemo, useState } from "react";
 import "./App.css";
+import DiscoveryProgress from "./components/DiscoveryProgress";
 import PokemonHeader from "./components/PokemonHeader";
 import PokemonSearch from "./components/PokemonSearch";
 import PokemonFilters, { type PokemonTypeFilter } from "./components/PokemonFilters";
 import PokemonResults from "./components/PokemonResults";
 import PokemonModal from "./components/PokemonModal";
 import PokemonPagination from "./components/PokemonPagination";
+import { useCollection } from "./hooks/useCollection";
 import { useFavorites } from "./hooks/useFavorites";
 import { usePokemonDetails } from "./hooks/usePokemonDetails";
 import { usePokemonIndex } from "./hooks/usePokemonIndex";
 import { usePokemonList, type PokemonListFilters } from "./hooks/usePokemonList";
 import { usePokemonSearch } from "./hooks/usePokemonSearch";
+import type { CollectionProvider } from "./providers/collection-provider";
 import type { FavoritesStorage } from "./providers/favorites-storage";
 import type { PokemonProvider } from "./providers/pokemon-provider";
 import { sortPokemon, type PokemonSortOrder } from "./utils/pokemon-sort";
 
+const CURRENT_PLAYER_ID = 1;
+
 interface AppProps {
+  collectionProvider: CollectionProvider;
   pokemonProvider: PokemonProvider;
   favoritesStorage: FavoritesStorage;
 }
 
-export default function App({ pokemonProvider, favoritesStorage }: AppProps) {
+export default function App({ collectionProvider, pokemonProvider, favoritesStorage }: AppProps) {
   const [selectedType, setSelectedType] = useState<PokemonTypeFilter>("ALL");
   const [favoritesOnly, setFavoritesOnly] = useState(false);
   const [sortBy, setSortBy] = useState<PokemonSortOrder>("id-asc");
 
+  const collection = useCollection(collectionProvider, CURRENT_PLAYER_ID);
   const details = usePokemonDetails(pokemonProvider);
   const favorites = useFavorites(favoritesStorage);
   const pokemonType = selectedType === "ALL" ? null : selectedType.toLowerCase();
@@ -32,7 +39,12 @@ export default function App({ pokemonProvider, favoritesStorage }: AppProps) {
   const filtersActive = pokemonType !== null || favoriteFilter !== null;
 
   const index = usePokemonIndex(pokemonProvider);
-  const search = usePokemonSearch(pokemonProvider, index.result, !filtersActive);
+  const catalogEntries = index.result?.status === "success" ? index.result.entries : null;
+  const totalPokemon = catalogEntries?.length ?? null;
+  const totalKnown = catalogEntries && collection.collection
+    ? catalogEntries.filter(({ id }) => collection.isKnown(id)).length
+    : null;
+  const search = usePokemonSearch(pokemonProvider, index.result, !!collection.collection && !filtersActive, collection.isKnown);
   const { searchTerm, isActive: isSearchActive } = search;
   const isGlobalSearch = isSearchActive && !filtersActive;
   const filters = useMemo<PokemonListFilters | null>(
@@ -44,7 +56,7 @@ export default function App({ pokemonProvider, favoritesStorage }: AppProps) {
     } : null,
     [filtersActive, index.result, pokemonType, favoriteFilter, search.term],
   );
-  const list = usePokemonList(pokemonProvider, !isGlobalSearch, filters);
+  const list = usePokemonList(pokemonProvider, !!collection.collection && !isGlobalSearch, collection.isKnown, filters);
 
   const activeResult = isGlobalSearch ? search.result : list.result;
   const displayList = useMemo(
@@ -83,10 +95,25 @@ export default function App({ pokemonProvider, favoritesStorage }: AppProps) {
 
   return (
     <div className="app-container">
-      <PokemonHeader totalCount={list.catalogTotalCount} favoriteCount={favorites.count} />
+      <PokemonHeader totalCount={totalPokemon} favoriteCount={collection.collection ? [...collection.knownPokemonIds].filter(favorites.isFavorite).length : null} />
+
+      {totalKnown !== null && totalPokemon !== null && (
+        <DiscoveryProgress totalKnown={totalKnown} totalPokemon={totalPokemon} />
+      )}
 
       <main className="pokedex-main">
         <section className="controls-panel glass-panel">
+          {collection.collection && index.result === null && (
+            <p role="status">Carregando o progresso da coleção...</p>
+          )}
+          {collection.collection && index.result?.status === "error" && (
+            <div>
+              <p role="status">Falha ao carregar o catálogo para calcular o progresso.</p>
+              <button type="button" className="reset-filters-btn" onClick={index.retry}>
+                Tentar novamente
+              </button>
+            </div>
+          )}
           {favorites.storageFailed && (
             <p role="status">Os favoritos serão mantidos apenas enquanto a Pokédex estiver aberta.</p>
           )}
@@ -96,6 +123,8 @@ export default function App({ pokemonProvider, favoritesStorage }: AppProps) {
             onChange={updateSearchTerm}
           />
           <PokemonFilters
+            onRefreshCollection={collection.refetch}
+            collectionLoading={collection.isLoading}
             selectedType={selectedType}
             favoritesOnly={favoritesOnly}
             sortBy={sortBy}
@@ -106,14 +135,14 @@ export default function App({ pokemonProvider, favoritesStorage }: AppProps) {
         </section>
 
         <PokemonResults
-          status={activeResult?.status ?? "loading"}
+          status={collection.isLoading ? "collection-loading" : collection.error ? "collection-error" : activeResult?.status ?? "loading"}
           pokemon={displayList}
           searchTerm={isSearchActive ? searchTerm : null}
           currentPage={list.currentPage}
           isFavorite={favorites.isFavorite}
           onToggleFavorite={favorites.toggleFavorite}
           onSelectPokemon={details.open}
-          onRetry={retry}
+          onRetry={collection.error ? collection.refetch : retry}
           onClearFilters={clearFilters}
         >
           {(!isSearchActive || filtersActive) && (
@@ -130,7 +159,7 @@ export default function App({ pokemonProvider, favoritesStorage }: AppProps) {
         </PokemonResults>
       </main>
 
-      {selectedPokemon && (
+      {selectedPokemon && collection.isKnown(selectedPokemon.id) && (
         <PokemonModal
           key={selectedPokemon.id}
           pokemon={selectedPokemon}

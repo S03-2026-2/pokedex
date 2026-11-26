@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client'
 import App from './App'
 import AppErrorBoundary from './components/AppErrorBoundary'
 import { CachedPokemonProvider } from './services/cache/cached-pokemon.provider'
+import { CollectionApiAdapter } from './services/collection-api/collection-api.adapter'
 import { PokeApiAdapter } from './services/pokeapi/poke-api.adapter'
 import { LocalStorageFavoritesAdapter } from './services/storage/local-storage-favorites.adapter'
 import './index.css'
@@ -15,11 +16,18 @@ if (!root) {
 
 const pokemonProvider = new CachedPokemonProvider(new PokeApiAdapter())
 const favoritesStorage = new LocalStorageFavoritesAdapter()
+const collectionApiUrl: string | undefined = import.meta.env.VITE_API_URL
+const useDevProxy = import.meta.env.DEV && /^https?:\/\//i.test(collectionApiUrl ?? '')
+const collectionProvider = new CollectionApiAdapter(useDevProxy ? '/collection-api' : collectionApiUrl)
 
 ReactDOM.createRoot(root).render(
   <React.StrictMode>
     <AppErrorBoundary>
-      <App pokemonProvider={pokemonProvider} favoritesStorage={favoritesStorage} />
+      <App
+        collectionProvider={collectionProvider}
+        pokemonProvider={pokemonProvider}
+        favoritesStorage={favoritesStorage}
+      />
     </AppErrorBoundary>
   </React.StrictMode>,
 )

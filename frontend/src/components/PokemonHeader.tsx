@@ -2,8 +2,8 @@ import "./PokemonHeader.css";
 import { Heart } from "lucide-react";
 
 interface PokemonHeaderProps {
-  totalCount: number;
-  favoriteCount: number;
+  totalCount: number | null;
+  favoriteCount: number | null;
 }
 
 export default function PokemonHeader({ totalCount, favoriteCount }: PokemonHeaderProps) {
@@ -25,12 +25,12 @@ export default function PokemonHeader({ totalCount, favoriteCount }: PokemonHead
 
       <div className="header-stats">
         <div className="stat-pill">
-          <span className="stat-pill-num">{totalCount}</span>
+          <span className="stat-pill-num">{totalCount ?? "—"}</span>
           <span className="stat-pill-label">Total PokéAPI</span>
         </div>
         <div className="stat-pill accent">
           <Heart size={14} fill="#ff3b5c" color="#ff3b5c" />
-          <span className="stat-pill-num">{favoriteCount}</span>
+          <span className="stat-pill-num">{favoriteCount ?? "—"}</span>
           <span className="stat-pill-label">Favoritos</span>
         </div>
       </div>

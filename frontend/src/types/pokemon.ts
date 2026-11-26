@@ -9,7 +9,7 @@ export interface PokemonIndexEntry {
 
 export interface PokemonPage {
   count: number;
-  names: string[];
+  entries: PokemonIndexEntry[];
 }
 
 export interface Pokemon {
@@ -27,6 +27,11 @@ export interface Pokemon {
 export interface PokemonSummary extends Pokemon {
   abilityReferences: PokemonAbilityReference[];
   speciesUrl: string;
+}
+
+export interface CatalogPokemon {
+  id: number;
+  summary: PokemonSummary | null;
 }
 
 export interface PokemonAbilityReference {

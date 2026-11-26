@@ -10,7 +10,7 @@
   transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.pokemon-card:hover {
+.pokemon-card:not(.locked-card):hover {
   transform: translateY(-6px);
   border-color: var(--border-glow);
   box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5), 0 0 20px rgba(255, 59, 92, 0.2);
@@ -26,6 +26,12 @@
 
 .pokemon-card:hover .card-glow {
   opacity: 1;
+}
+
+.locked-card {
+  cursor: default;
+  color: var(--text-muted);
+  border-style: dashed;
 }
 
 .card-header {

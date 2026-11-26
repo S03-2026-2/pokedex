@@ -1,0 +1,83 @@
+.discovery-progress {
+  padding: 20px clamp(16px, 4vw, 28px);
+  border-radius: var(--radius-lg);
+  display: grid;
+  gap: 12px;
+}
+
+.discovery-progress-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 16px;
+}
+
+.discovery-progress-heading h2 {
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+.discovery-progress-percent {
+  color: var(--primary-red);
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+}
+
+.discovery-progress-bar {
+  display: block;
+  appearance: none;
+  width: 100%;
+  height: 10px;
+  overflow: hidden;
+  border: 0;
+  border-radius: 999px;
+  background: var(--border-light);
+  accent-color: var(--primary-red);
+}
+
+.discovery-progress-bar::-webkit-progress-bar {
+  background: var(--border-light);
+}
+
+.discovery-progress-bar::-webkit-progress-value {
+  border-radius: 999px;
+  background: var(--primary-red);
+}
+
+.discovery-progress-bar::-moz-progress-bar {
+  border-radius: 999px;
+  background: var(--primary-red);
+}
+
+.discovery-progress-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px 16px;
+}
+
+.discovery-progress-stats > div {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 8px;
+}
+
+.discovery-progress-stats dt {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.discovery-progress-stats dd {
+  font-weight: 800;
+}
+
+@media (max-width: 480px) {
+  .discovery-progress-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .discovery-progress-stats > div {
+    justify-content: space-between;
+  }
+}

@@ -47,11 +47,11 @@ function normalizeDescription(text: string): string {
 }
 
 export function mapPokemonIndex(data: PokemonIndexResponse): PokemonIndexEntry[] {
-  return data.results.map(({ name }, index) => ({ name, id: index + 1 }));
+  return data.results.map(({ name, url }) => ({ name, id: Number(url.split("/").filter(Boolean).pop()) }));
 }
 
 export function mapPokemonPage(data: PokemonPageResponse): PokemonPage {
-  return { count: data.count, names: data.results.map(({ name }) => name) };
+  return { count: data.count, entries: mapPokemonIndex(data) };
 }
 
 export function mapPokemonTypeNames(data: PokemonTypeResponse): string[] {

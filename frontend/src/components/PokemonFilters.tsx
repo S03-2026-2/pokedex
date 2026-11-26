@@ -1,5 +1,5 @@
 import "./PokemonFilters.css";
-import { Heart, SlidersHorizontal } from "lucide-react";
+import { Heart, RefreshCw, SlidersHorizontal } from "lucide-react";
 import { TYPE_COLORS } from "../data/pokemon";
 import { POKEMON_SORT_OPTIONS, type PokemonSortOrder } from "../utils/pokemon-sort";
 
@@ -14,6 +14,8 @@ const TYPE_FILTERS: PokemonTypeFilter[] = [
 ];
 
 interface PokemonFiltersProps {
+  onRefreshCollection: () => void;
+  collectionLoading: boolean;
   selectedType: PokemonTypeFilter;
   favoritesOnly: boolean;
   sortBy: PokemonSortOrder;
@@ -24,6 +26,8 @@ interface PokemonFiltersProps {
 
 export default function PokemonFilters({
   selectedType,
+  onRefreshCollection,
+  collectionLoading,
   favoritesOnly,
   sortBy,
   onTypeChange,
@@ -51,6 +55,11 @@ export default function PokemonFilters({
         >
           <Heart size={16} fill={favoritesOnly ? "#ff3b5c" : "none"} />
           <span>Somente Favoritos</span>
+        </button>
+
+        <button type="button" className="toggle-fav-btn" disabled={collectionLoading} onClick={onRefreshCollection}>
+          <RefreshCw size={16} />
+          <span>Atualizar coleção</span>
         </button>
 
         <div className="sort-dropdown-wrapper">
