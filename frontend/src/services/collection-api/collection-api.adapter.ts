@@ -10,11 +10,13 @@ class CollectionApiHttpError extends Error {
 }
 
 export class CollectionApiAdapter implements CollectionProvider {
-  constructor(private readonly fetcher: typeof fetch = (...args) => fetch(...args)) {}
+  constructor(
+    private readonly apiUrl: string | undefined,
+    private readonly fetcher: typeof fetch = (...args) => fetch(...args),
+  ) {}
 
   async getCollection(playerId: number, signal?: AbortSignal): Promise<Collection> {
-    const apiUrl: string | undefined = import.meta.env.VITE_API_URL;
-    const baseUrl = apiUrl?.trim().replace(/\/+$/, "");
+    const baseUrl = this.apiUrl?.trim().replace(/\/+$/, "");
     if (!baseUrl) {
       throw new Error("VITE_API_URL is not configured.");
     }

@@ -6,25 +6,31 @@ import PokemonFilters, { type PokemonTypeFilter } from "./components/PokemonFilt
 import PokemonResults from "./components/PokemonResults";
 import PokemonModal from "./components/PokemonModal";
 import PokemonPagination from "./components/PokemonPagination";
+import { useCollection } from "./hooks/useCollection";
 import { useFavorites } from "./hooks/useFavorites";
 import { usePokemonDetails } from "./hooks/usePokemonDetails";
 import { usePokemonIndex } from "./hooks/usePokemonIndex";
 import { usePokemonList, type PokemonListFilters } from "./hooks/usePokemonList";
 import { usePokemonSearch } from "./hooks/usePokemonSearch";
+import type { CollectionProvider } from "./providers/collection-provider";
 import type { FavoritesStorage } from "./providers/favorites-storage";
 import type { PokemonProvider } from "./providers/pokemon-provider";
 import { sortPokemon, type PokemonSortOrder } from "./utils/pokemon-sort";
 
+const CURRENT_PLAYER_ID = 1;
+
 interface AppProps {
+  collectionProvider: CollectionProvider;
   pokemonProvider: PokemonProvider;
   favoritesStorage: FavoritesStorage;
 }
 
-export default function App({ pokemonProvider, favoritesStorage }: AppProps) {
+export default function App({ collectionProvider, pokemonProvider, favoritesStorage }: AppProps) {
   const [selectedType, setSelectedType] = useState<PokemonTypeFilter>("ALL");
   const [favoritesOnly, setFavoritesOnly] = useState(false);
   const [sortBy, setSortBy] = useState<PokemonSortOrder>("id-asc");
 
+  useCollection(collectionProvider, CURRENT_PLAYER_ID);
   const details = usePokemonDetails(pokemonProvider);
   const favorites = useFavorites(favoritesStorage);
   const pokemonType = selectedType === "ALL" ? null : selectedType.toLowerCase();
