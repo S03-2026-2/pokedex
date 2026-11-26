@@ -181,7 +181,28 @@ A aplicação separa as operações de leitura e escrita em duas interfaces. A i
 
 O `CollectionController` depende somente de `ICollectionReader`, enquanto o `CardEventConsumer` depende de `ICollectionWriter`. O mesmo `CollectionService` implementa os dois contratos, sem a necessidade de duplicar o service.
 
-No frontend, `PokemonProvider`, `CollectionProvider` e `FavoritesStorage` também separam contratos de acesso a recursos com finalidades distintas.
+No endpoint de consulta, o controller recebe apenas o contrato de leitura: [Controller da coleção](backend/src/controllers/collection.controller.ts)
+
+```typescript
+@Controller('collections')
+export class CollectionController {
+  constructor(
+    @Inject(COLLECTION_READER)
+    private readonly collectionReader: ICollectionReader,
+  ) {}
+```
+Já o consumidor de eventos recebe apenas o contrato de escrita para registrar novas descobertas: Consumidor de eventos
+
+```typescript
+@Injectable()
+export class CardEventConsumer implements OnModuleInit, OnModuleDestroy {
+  constructor(
+    @Inject(COLLECTION_WRITER)
+    private readonly collectionWriter: ICollectionWriter,
+    @Inject(CARD_EVENT_SOURCE)
+    private readonly eventSource: ICardEventSource,
+  ) {}
+  ```
 
 ### 4.5. DIP — Dependency Inversion Principle
 
@@ -189,11 +210,19 @@ O princípio da inversão de dependência estabelece que componentes de alto ní
 
 O `CollectionService` recebe o contrato `ICollectionRepository`, em vez de instanciar ou depender diretamente do repository do TypeORM.
 
-O NestJS associa os tokens de injeção às implementações no `CollectionModule`. Os contratos de leitura e escrita são associados à mesma instância do service por meio de `useExisting`.
+O NestJS associa os tokens de injeção às implementações no `CollectionModule`. Os contratos de leitura e escrita são associados à mesma instância do service por meio de `useExisting`. [Módulo da coleção](backend/src/modules/collection.module.ts)
 
-No frontend, os hooks recebem os providers por suas interfaces. As implementações concretas são instanciadas no `main.tsx` e passadas ao `App`.
-
-Essa organização facilita a substituição das fontes de dados e a criação de implementações em memória para testes. As entidades do backend ainda possuem decorators do TypeORM, uma escolha de simplicidade para este projeto, portanto não se trata de um domínio totalmente independente do ORM.
+```typescript
+providers: [
+  { provide: COLLECTION_REPOSITORY, useClass: CollectionRepository },
+  CollectionService,
+  { provide: COLLECTION_READER, useExisting: CollectionService },
+  { provide: COLLECTION_WRITER, useExisting: CollectionService },
+  FakeCardEventSource,
+  { provide: CARD_EVENT_SOURCE, useExisting: FakeCardEventSource },
+  CardEventConsumer,
+],
+```
 
 ## 5. Design Patterns
 
