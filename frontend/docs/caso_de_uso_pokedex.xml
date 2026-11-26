@@ -1,0 +1,111 @@
+<mxfile host="app.diagrams.net" version="26.0.0">
+  <diagram name="Caso de Uso - Pokedex" id="pokedex-usecase-diagram">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        
+        <!-- Limite do Sistema (System Boundary) -->
+        <mxCell id="system_boundary" value="Aplicação 9 - Pokédex (Gerenciamento de Cartas Conhecidas)" style="shape=swimlane;whiteSpace=wrap;html=1;startSize=23;collapsible=0;crud=0;pointerEvents=0;" vertex="1" parent="1">
+          <mxGeometry x="220" y="40" width="460" height="740" as="geometry" />
+        </mxCell>
+        
+        <!-- Casos de Uso dentro do Sistema -->
+        <mxCell id="uc1" value="Visualizar Coleção de Pokémons Conhecidos" style="ellipse;whiteSpace=wrap;html=1;" vertex="1" parent="system_boundary">
+          <mxGeometry x="90" y="40" width="280" height="60" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="uc2" value="Consultar Progresso de Cartas (Total vs Conhecidos)" style="ellipse;whiteSpace=wrap;html=1;" vertex="1" parent="system_boundary">
+          <mxGeometry x="90" y="130" width="280" height="60" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="uc3" value="Visualizar Detalhes do Pokémon (Histórico &amp; Stats)" style="ellipse;whiteSpace=wrap;html=1;" vertex="1" parent="system_boundary">
+          <mxGeometry x="90" y="220" width="280" height="60" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="uc4" value="Filtrar e Pesquisar Pokémons (Nome, Tipo, ID)" style="ellipse;whiteSpace=wrap;html=1;" vertex="1" parent="system_boundary">
+          <mxGeometry x="90" y="310" width="280" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="uc5" value="Registrar Novo Pokémon Conhecido (Histórico Permanente)" style="ellipse;whiteSpace=wrap;html=1;" vertex="1" parent="system_boundary">
+          <mxGeometry x="90" y="400" width="280" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="uc6" value="Consultar Informações Oficiais da PokéAPI" style="ellipse;whiteSpace=wrap;html=1;" vertex="1" parent="system_boundary">
+          <mxGeometry x="90" y="490" width="280" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="uc7" value="Autenticar &amp; Validar Credenciais do Jogador" style="ellipse;whiteSpace=wrap;html=1;" vertex="1" parent="system_boundary">
+          <mxGeometry x="90" y="580" width="280" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="uc8" value="Auditar Posse e Histórico de Cartas dos Jogadores" style="ellipse;whiteSpace=wrap;html=1;" vertex="1" parent="system_boundary">
+          <mxGeometry x="90" y="660" width="280" height="60" as="geometry" />
+        </mxCell>
+        
+        <!-- Atores (Esquerda e Direita) -->
+        <mxCell id="actor_jogador" value="Jogador" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;" vertex="1" parent="1">
+          <mxGeometry x="80" y="240" width="40" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="actor_admin" value="Administrador" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;" vertex="1" parent="1">
+          <mxGeometry x="80" y="660" width="40" height="80" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="actor_app1" value="Aplicação 1&#xa;(Jogadores)" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;" vertex="1" parent="1">
+          <mxGeometry x="780" y="620" width="40" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="actor_app2" value="Aplicação 2&#xa;(Distribuição)" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;" vertex="1" parent="1">
+          <mxGeometry x="780" y="380" width="40" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="actor_app3" value="Aplicação 3&#xa;(Trocas)" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;" vertex="1" parent="1">
+          <mxGeometry x="780" y="480" width="40" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="actor_pokeapi" value="PokéAPI&#xa;(Externa)" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;" vertex="1" parent="1">
+          <mxGeometry x="780" y="530" width="40" height="80" as="geometry" />
+        </mxCell>
+        
+        <!-- Associações (Linhas de Conexão) -->
+        <mxCell id="edge1" style="endArrow=none;html=1;rounded=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="actor_jogador" target="uc1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="edge2" style="endArrow=none;html=1;rounded=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="actor_jogador" target="uc2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="edge3" style="endArrow=none;html=1;rounded=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="actor_jogador" target="uc3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="edge4" style="endArrow=none;html=1;rounded=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="actor_jogador" target="uc4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="edge5" style="endArrow=none;html=1;rounded=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="actor_admin" target="uc8">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="edge6" style="endArrow=none;html=1;rounded=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="actor_app2" target="uc5">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="edge7" style="endArrow=none;html=1;rounded=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="actor_app3" target="uc5">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="edge8" style="endArrow=none;html=1;rounded=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="actor_pokeapi" target="uc6">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="edge9" style="endArrow=none;html=1;rounded=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="actor_app1" target="uc7">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
