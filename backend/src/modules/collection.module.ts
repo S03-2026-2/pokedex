@@ -4,6 +4,7 @@ import { CollectionController } from '../controllers/collection.controller';
 import { CollectionRepository } from '../database/repositories/collection.repository';
 import { Collection } from '../entities/collection.entity';
 import { KnownCard } from '../entities/known-card.entity';
+import { CardEventConsumer } from '../events/consumers/card-event.consumer';
 import { COLLECTION_READER } from '../interfaces/collection-reader.interface';
 import { COLLECTION_REPOSITORY } from '../interfaces/collection-repository.interface';
 import { COLLECTION_WRITER } from '../interfaces/collection-writer.interface';
@@ -17,6 +18,7 @@ import { CollectionService } from '../services/collection.service';
     CollectionService,
     { provide: COLLECTION_READER, useExisting: CollectionService },
     { provide: COLLECTION_WRITER, useExisting: CollectionService },
+    CardEventConsumer,
   ],
   exports: [COLLECTION_REPOSITORY, COLLECTION_READER, COLLECTION_WRITER],
 })
