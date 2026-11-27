@@ -276,23 +276,6 @@ O ponto de composição cria o adapter e o entrega ao Decorator. O `App` recebe 
 const pokemonProvider = new CachedPokemonProvider(new PokeApiAdapter())
 ```
 
-Em `getPokemonPage`, a combinação de `offset` e `limit` identifica a entrada. `getOrLoad` devolve um resultado válido do cache, reaproveita uma requisição em andamento ou chama o provider encapsulado. [Implementação do cache](frontend/src/services/cache/cached-pokemon.provider.ts)
-
-```typescript
-getPokemonPage(offset: number, limit: number, signal?: AbortSignal): Promise<PokemonPage> {
-  return this.getOrLoad(this.pages, `${offset}:${limit}`, (sharedSignal) =>
-    this.provider.getPokemonPage(offset, limit, sharedSignal), signal);
-}
-```
-
-Por exemplo, duas consultas a `getPokemonPage(0, 100)` compartilham a requisição se ela ainda estiver em andamento. Depois que ela termina com sucesso, a página pode ser reutilizada enquanto a entrada estiver válida.
-
-O cache é mantido em memória, com validade padrão de dez minutos, e permite o reaproveitamento de requisições em andamento para a mesma chave. Isso reduz consultas repetidas à PokéAPI sem exigir mudanças nos hooks ou no adapter original.
-
-A coleção do jogador não utiliza esse cache, pois suas descobertas podem mudar após novos eventos.
-
-<a name="observer"></a>
-
 ### 5.3. Observer — Padrão comportamental
 
 O Observer estabelece uma relação de inscrição e notificação, permitindo que um objeto informe seus observadores sobre acontecimentos sem conhecer suas regras internas.
