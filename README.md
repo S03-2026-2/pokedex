@@ -94,6 +94,16 @@ O backend é desenvolvido com NestJS, TypeORM e PostgreSQL. As funcionalidades d
 | `Collection` e `KnownCard` | Representar os dados da coleção e das descobertas, mapeados para o banco de dados. |
 | `CollectionModule` | Configurar a injeção de dependências e os componentes da aplicação. |
 
+#### Endpoints da API
+
+| Método | Rota | Descrição | Resposta |
+| --- | --- | --- | --- |
+| `GET` | `/collections/:playerId` | Retorna os Pokémon já descobertos pelo jogador. Consumido pelo frontend. | `200` com `{ playerId, knownPokemonIds, totalKnown }`. Sem coleção, `knownPokemonIds` é uma lista vazia. |
+| `POST` | `/simulation/distribution` | Simula o recebimento de Pokémon por distribuição. | `200` com `{ status, playerId, pokemonIds, origin }`. |
+| `POST` | `/simulation/trade` | Simula o recebimento de Pokémon por troca. | `200` com `{ status, playerId, pokemonIds, origin }`. |
+
+As rotas de `/simulation` recebem o corpo `{ "playerId": 1, "pokemonIds": [1, 4, 7] }`, validado com Zod (corpo inválido, como lista vazia, retorna `400`). Elas existem apenas para demonstração e só são registradas quando `SIMULATION_ENABLED=true`. Exemplos de requisição estão em [docs/requests.http](docs/requests.http).
+
 #### Fluxo de consulta
 
 1. O frontend utiliza o adapter da coleção para consultar os Pokémon conhecidos do jogador.

@@ -1,0 +1,41 @@
+@baseUrl = http://localhost:3333
+@playerId = 1
+
+### Ver a coleção do jogador
+GET {{baseUrl}}/collections/{{playerId}}
+
+### Simular recebimento por distribuição
+POST {{baseUrl}}/simulation/distribution
+Content-Type: application/json
+
+{
+  "playerId": 1,
+  "pokemonIds": [1, 4, 7]
+}
+
+### Simular recebimento por troca
+POST {{baseUrl}}/simulation/trade
+Content-Type: application/json
+
+{
+  "playerId": 1,
+  "pokemonIds": [25, 6, 150]
+}
+
+### Repetido: não gera nova descoberta (a coleção continua igual)
+POST {{baseUrl}}/simulation/trade
+Content-Type: application/json
+
+{
+  "playerId": 1,
+  "pokemonIds": [25]
+}
+
+### Inválido: lista vazia (retorna 400)
+POST {{baseUrl}}/simulation/distribution
+Content-Type: application/json
+
+{
+  "playerId": 1,
+  "pokemonIds": []
+}
