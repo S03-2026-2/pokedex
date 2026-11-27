@@ -15,6 +15,13 @@ import {
   simulateCardsSchema,
 } from './dtos/simulate-cards.dto';
 
+interface SimulationResponse {
+  status: 'success';
+  playerId: number;
+  pokemonIds: number[];
+  origin: DiscoveryOrigin;
+}
+
 class ZodValidationPipe implements PipeTransform<unknown, SimulateCardsDto> {
   transform(value: unknown): SimulateCardsDto {
     const result = simulateCardsSchema.safeParse(value);
@@ -33,25 +40,27 @@ export class SimulationController {
 
   @Post('distribution')
   @HttpCode(HttpStatus.OK)
-  simulateDistribution(@Body() body: SimulateCardsDto): Promise<void> {
+  simulateDistribution(@Body() body: SimulateCardsDto): Promise<SimulationResponse> {
     return this.emitCards(body, DiscoveryOrigin.DISTRIBUTION);
   }
 
   @Post('trade')
   @HttpCode(HttpStatus.OK)
-  simulateTrade(@Body() body: SimulateCardsDto): Promise<void> {
+  simulateTrade(@Body() body: SimulateCardsDto): Promise<SimulationResponse> {
     return this.emitCards(body, DiscoveryOrigin.TRADE);
   }
 
-  private emitCards(
+  private async emitCards(
     { playerId, pokemonIds }: SimulateCardsDto,
     origin: DiscoveryOrigin,
-  ): Promise<void> {
-    return this.eventSource.emit({
+  ): Promise<SimulationResponse> {
+    await this.eventSource.emit({
       playerId,
       pokemonIds,
       origin,
       occurredAt: new Date(),
     });
+
+    return { status: 'success', playerId, pokemonIds, origin };
   }
 }
