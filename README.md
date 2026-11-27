@@ -118,6 +118,8 @@ A interface `ICardEventSource` permite que o consumidor dependa de uma abstraç�
 
 O diagrama representa as interações do jogador e dos sistemas externos com a Pokédex, incluindo a consulta da coleção, o acompanhamento do progresso, a visualização de detalhes e o registro de novas descobertas.
 
+![Diagrama de casos de uso da Pokédex](docs/use_case_pokedex_v1.png)
+
 [Diagrama de casos de uso em PDF](docs/use_case_pokedex_v1.pdf) · [Arquivo Draw.io](docs/use_case_pokedex_v1.drawio)
 
 Os casos de uso que dependem das demais aplicações representam a integração planejada. A autenticação, a auditoria administrativa e a comunicação real com as equipes externas não fazem parte da implementação atual.
@@ -125,6 +127,10 @@ Os casos de uso que dependem das demais aplicações representam a integração 
 ### Diagrama de classes
 
 O diagrama de classes apresenta a estrutura principal da solução, destacando os relacionamentos do domínio, os contratos de leitura e escrita, a persistência e os adapters do frontend.
+
+![Diagrama de classes da solução integrada](docs/uml_SOLID_final.png)
+
+A imagem acima mostra a versão final (solução integrada). As versões anteriores e os arquivos editáveis estão na tabela:
 
 | Versão | PDF | Arquivo editável |
 | --- | --- | --- |
